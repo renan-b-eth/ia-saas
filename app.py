@@ -132,6 +132,7 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             import edge_tts
             import asyncio
             import os
+            import requests
 
             report = Report.query.get(report_id)
             print(f"🎙️ [PASSO 1/3] Gerando Áudio com Edge-TTS...", flush=True)
@@ -140,50 +141,47 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
 
             async def generate_voice():
-                # Voz Antonio: Autoridade e clareza
                 communicate = edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural")
                 await communicate.save(audio_path)
 
             asyncio.run(generate_voice())
             print("✅ Áudio gerado com sucesso!", flush=True)
 
-            # --- PASSO 2: GPU EXTERNA (WINGETGUI) ---
-            print("🎥 [PASSO 2/3] Renderizando Avatar via Mirror Independente...", flush=True)
+            # --- PASSO 2: GPU NVIDIA (InnoAI - Mirror com Suporte a Áudio) ---
+            print("🎥 [PASSO 2/3] Renderizando Avatar via InnoAI...", flush=True)
             
-            # Conexão com a URL direta (links diretos costumam não exigir Token)
-            client_gpu = Client("https://liveportrait.wingetgui.com/") 
-            
+            # 1. Baixamos a foto localmente para evitar erros de rede na API
             foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
+            temp_foto = os.path.join(app_obj.config['UPLOAD_FOLDER'], "consultor_temp.jpg")
+            img_data = requests.get(foto_url).content
+            with open(temp_foto, 'wb') as f:
+                f.write(img_data)
+
+            # 2. Conectamos ao InnoAI (use 'token' ou 'hf_token' conforme sua versão instalada)
+            hf_token = os.getenv("HF_TOKEN")
+            client_gpu = Client("InnoAI/LivePortrait", token=hf_token) 
             
-            # AJUSTE CONFORME SEU LOG:
-            # param_0: Imagem (foto)
-            # param_1: Vídeo/Áudio (passamos como dicionário conforme o log indicou)
-            # param_2, 3, 4: Bools de controle (True por padrão)
+            # 3. Chamada de API específica para ÁUDIO (InnoAI)
+            # Parâmetros: imagem, áudio, e as flags de movimento
             result = client_gpu.predict(
-                param_0=handle_file(foto_url),
-                param_1={"video": handle_file(audio_path)},
-                param_2=True,
-                param_3=True,
-                param_4=True,
-                api_name="/gpu_wrapped_execute_video"
+                input_image_path=handle_file(temp_foto),
+                input_audio_path=handle_file(audio_path),
+                api_name="/predict"
             )
-            
-            # O log mostrou que o retorno é uma lista/tupla com um dicionário {"video": "caminho"}
-            video_url = result[0]['video']
             print("✅ Vídeo renderizado com sucesso!", flush=True)
 
             # --- PASSO 3: FINALIZAÇÃO ---
             html_video = f"""
             <div class='video-container-premium'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
-                    <source src='{video_url}' type='video/mp4'>
+                    <source src='{result}' type='video/mp4'>
                 </video>
             </div>
             """
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            print(f"🏆 [SUCESSO] Processo finalizado para o Report {report_id}")
+            print(f"🏆 [SUCESSO] Vídeo finalizado para o Report {report_id}")
 
         except Exception as e:
             error_msg = str(e)
