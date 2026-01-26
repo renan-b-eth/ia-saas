@@ -124,61 +124,55 @@ def worker_video_tutorial(app_obj, report_id, user_id):
         try:
             from gradio_client import Client, handle_file
             from openai import AzureOpenAI
-            import time
-            
-            report = Report.query.get(report_id)
-            report.status = "PROCESSING" # Garante que o status está correto para o JS ler
-            db.session.commit()
+            import os
 
-            print(f"🚀 [WORKER VIDEO] Iniciando: Report {report_id}", flush=True)
+            report = Report.query.get(report_id)
+            print(f"🎙️ [PASSO 1] Conectando à Azure TTS...", flush=True)
 
             az_client = AzureOpenAI(
                 azure_endpoint=os.getenv("AZURE_ENDPOINT"), 
                 api_key=os.getenv("AZURE_API_KEY"), 
-                api_version="2024-02-15-preview"
+                api_version="2024-05-01-preview" # Versão mais estável para Áudio
             )
 
-            # --- PASSO 1: ROTEIRO ---
-            prompt_roteiro = f"Aja como Renan Bezerra. Resuma em 30s: {report.ai_response[:800]}"
-            resp = az_client.chat.completions.create(model="meu-gpt", messages=[{"role": "user", "content": prompt_roteiro}])
-            roteiro_texto = resp.choices[0].message.content
+            # Roteiro Curto
+            roteiro = f"Olá, sou o consultor da Rendey. Analisei seu relatório de {report.tool_name} e os detalhes estão abaixo."
+            audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
 
-            # --- PASSO 2: ÁUDIO ---
-            audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"voice_{report_id}.mp3")
-            response = az_client.audio.speech.create(model="tts", voice="onyx", input=roteiro_texto)
+            # CHAMADA DE ÁUDIO
+            response = az_client.audio.speech.create(
+                model="tts", # <--- Verifique se no portal o nome é exatamente este
+                voice="onyx",
+                input=roteiro
+            )
             response.stream_to_file(audio_path)
+            print("✅ Áudio gerado!", flush=True)
 
-            # --- PASSO 3: GPU (A PARTE QUE PODE DEMORAR) ---
-            print("🎥 [PASSO 3/3] Enviando para GPU... Entrando na fila Kwai-VGI.", flush=True)
+            # PASSO 2: GPU NVIDIA
             client_gpu = Client("Kwai-VGI/LivePortrait") 
-            
-            # Link da foto no seu repositório de assets
-            foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
-
             result = client_gpu.predict(
-                input_image=handle_file(foto_url),
+                input_image=handle_file("https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"),
                 input_audio=handle_file(audio_path),
                 api_name="/predict"
             )
 
-            # --- FINALIZAÇÃO ---
-            html_video = f"""
-            <div class='video-container-premium'>
-                <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
-                    <source src='{result}' type='video/mp4'>
-                </video>
-            </div>
-            """
+            # FINALIZAÇÃO
+            html_video = f"<div class='video-container-premium'><video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'><source src='{result}' type='video/mp4'></video></div>"
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            print(f"🏆 [SUCESSO] Vídeo entregue: {report_id}")
 
         except Exception as e:
-            print(f"❌ [ERRO] {str(e)}")
+            # ESTA LINHA É A CHAVE: Ela escreve o erro no seu banco de dados
+            error_detalhado = f"❌ ERRO TÉCNICO NO VÍDEO: {str(e)}"
+            print(error_detalhado, flush=True)
+            
             report = Report.query.get(report_id)
-            report.status = "ERROR"
-            db.session.commit()
+            if report:
+                report.status = "ERROR"
+                # Isso vai aparecer na sua tela de resultado se o vídeo falhar
+                report.ai_response = f"<div class='p-6 bg-red-900/20 border border-red-500 rounded-2xl text-red-400 text-xs font-mono'>{error_detalhado}</div>" + report.ai_response
+                db.session.commit()
 
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
