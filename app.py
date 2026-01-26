@@ -140,43 +140,50 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
 
             async def generate_voice():
-                # pt-BR-AntonioNeural é a voz de autoridade para consultoria
+                # Voz Antonio: Autoridade e clareza
                 communicate = edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural")
                 await communicate.save(audio_path)
 
             asyncio.run(generate_voice())
             print("✅ Áudio gerado com sucesso!", flush=True)
 
-            # --- PASSO 2: GPU NVIDIA (NOVO MIRROR PÚBLICO) ---
-            print("🎥 [PASSO 2/3] Renderizando Avatar na GPU NVIDIA...", flush=True)
+            # --- PASSO 2: GPU EXTERNA (WINGETGUI) ---
+            print("🎥 [PASSO 2/3] Renderizando Avatar via Mirror Independente...", flush=True)
             
-            hf_token = os.getenv("HF_TOKEN") 
-            
-            # Mudamos para o mirror 'yzd-v/LivePortrait', que está ATIVO e PÚBLICO
-            client_gpu = Client("yzd-v/LivePortrait", token=hf_token) 
+            # Conexão com a URL direta (links diretos costumam não exigir Token)
+            client_gpu = Client("https://liveportrait.wingetgui.com/") 
             
             foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
             
-            # Chamada específica para este servidor (parâmetros: source, driving_audio, opcões)
+            # AJUSTE CONFORME SEU LOG:
+            # param_0: Imagem (foto)
+            # param_1: Vídeo/Áudio (passamos como dicionário conforme o log indicou)
+            # param_2, 3, 4: Bools de controle (True por padrão)
             result = client_gpu.predict(
-                source_image=handle_file(foto_url),
-                driving_audio=handle_file(audio_path),
-                api_name="/predict"
+                param_0=handle_file(foto_url),
+                param_1={"video": handle_file(audio_path)},
+                param_2=True,
+                param_3=True,
+                param_4=True,
+                api_name="/gpu_wrapped_execute_video"
             )
-            print("✅ Vídeo renderizado pela GPU!", flush=True)
+            
+            # O log mostrou que o retorno é uma lista/tupla com um dicionário {"video": "caminho"}
+            video_url = result[0]['video']
+            print("✅ Vídeo renderizado com sucesso!", flush=True)
 
             # --- PASSO 3: FINALIZAÇÃO ---
             html_video = f"""
             <div class='video-container-premium'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
-                    <source src='{result}' type='video/mp4'>
+                    <source src='{video_url}' type='video/mp4'>
                 </video>
             </div>
             """
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            print(f"🏆 [SUCESSO] Vídeo finalizado para o Report {report_id}")
+            print(f"🏆 [SUCESSO] Processo finalizado para o Report {report_id}")
 
         except Exception as e:
             error_msg = str(e)
@@ -184,7 +191,7 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
-                report.ai_response = f"<div class='p-4 bg-red-900/20 border border-red-500 rounded-xl text-red-400 text-xs font-mono mb-4'>ERRO TÉCNICO: {error_msg}</div>" + report.ai_response
+                report.ai_response = f"<div class='p-4 bg-red-900/20 border border-red-500 rounded-xl text-red-400 text-xs font-mono mb-4'>LOG TÉCNICO: {error_msg}</div>" + report.ai_response
                 db.session.commit()
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
