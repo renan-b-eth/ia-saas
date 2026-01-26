@@ -34,43 +34,89 @@
     </div>
 </div>
 
+<div id="queueModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-6">
+    <div class="max-w-md w-full bg-slate-900 border border-white/10 rounded-[40px] p-10 text-center shadow-2xl shadow-indigo-500/20">
+        <div class="w-20 h-20 bg-indigo-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-clock text-3xl text-indigo-400 animate-pulse"></i>
+        </div>
+        <h3 class="text-2xl font-black text-white uppercase italic mb-4">Alta Demanda na GPU</h3>
+        <p class="text-slate-400 text-sm mb-8 leading-relaxed">
+            Seu vídeo está sendo renderizado nos nossos clusters <span class="text-white font-bold">NVIDIA</span>. Devido à complexidade do avatar, isso pode levar mais alguns instantes.
+        </p>
+        <button onclick="extendWait()" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs hover:bg-indigo-500 transition-all active:scale-95 shadow-xl shadow-indigo-500/20">
+            OK, AGUARDAR MAIS 2 MINUTOS
+        </button>
+    </div>
+</div>
+
 <script>
-    // Simulação de progresso visual enquanto o backend trabalha
+    // Configurações do Timer e Status
     let progress = 5;
+    let secondsElapsed = 0;
+    let modalShown = false;
+    
     const bar = document.getElementById('progress-bar');
     const status = document.getElementById('status-text');
+    const modal = document.getElementById('queueModal');
+
     const messages = [
         "Iniciando motores de busca...",
         "Filtrando dados do Google Shopping...",
         "Analisando competitividade local...",
         "Gerando insights estratégicos...",
-        "Finalizando relatório para você..."
+        "Finalizando relatório para você...",
+        "Preparando renderização do vídeo..."
     ];
 
     let msgIndex = 0;
-    const interval = setInterval(() => {
-    
+
+    // Intervalo de Animação Visual e Controle de Tempo
+    const mainTimer = setInterval(() => {
+        // Incrementa tempo real
+        secondsElapsed++;
+
+        // 1. Controle da Barra de Progresso
         if (progress < 95) {
-            progress += Math.random() * 8;
+            progress += Math.random() * 4;
             bar.style.width = progress + "%";
             
-            if (progress > (msgIndex + 1) * 20) {
+            if (progress > (msgIndex + 1) * 15 && msgIndex < messages.length - 1) {
                 status.innerText = messages[msgIndex];
                 msgIndex++;
             }
         }
-    }, 2000);
 
-    // Verificação real do status via AJAX (O seu código já deve ter essa lógica para redirecionar)
-    setInterval(function() {
+        // 2. Lógica do Modal de Fila (Dispara em 60 segundos)
+        if (secondsElapsed >= 60 && !modalShown) {
+            modal.classList.remove('hidden');
+            modalShown = true;
+        }
+    }, 1000); // Roda a cada 1 segundo
+
+    // Função para o usuário aceitar esperar mais
+    function extendWait() {
+        modal.classList.add('hidden');
+        // Adiciona um "delay" extra para o modal não aparecer de novo imediatamente
+        secondsElapsed = -60; 
+    }
+
+    // Verificação Real no Banco de Dados
+    const checkStatus = setInterval(function() {
         fetch('/report_status/{{ report_id }}')
         .then(response => response.json())
         .then(data => {
             if (data.status === 'COMPLETED') {
-                // Redireciona para a URL correta que criamos acima
+                clearInterval(checkStatus);
+                clearInterval(mainTimer);
                 window.location.href = `/tool/{{ tool_type }}/result/${data.id}`;
+            } else if (data.status === 'ERROR') {
+                clearInterval(checkStatus);
+                clearInterval(mainTimer);
+                status.innerText = "Ocorreu um erro no processamento.";
+                status.classList.add('text-red-500');
             }
-        });
-    }, 3000);
+        })
+        .catch(err => console.error("Erro na checagem:", err));
+    }, 3000); // Checa no banco a cada 3 segundos
 </script>
 {% endblock %}
