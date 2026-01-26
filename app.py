@@ -147,49 +147,50 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             asyncio.run(generate_voice())
             print("✅ Áudio gerado com sucesso!", flush=True)
 
-            # --- PASSO 2: GPU NVIDIA (InnoAI - Mirror com Suporte a Áudio) ---
+            # --- PASSO 2: GPU NVIDIA (InnoAI - Ajustado) ---
             print("🎥 [PASSO 2/3] Renderizando Avatar via InnoAI...", flush=True)
             
-            # 1. Baixamos a foto localmente para evitar erros de rede na API
-            foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
-            temp_foto = os.path.join(app_obj.config['UPLOAD_FOLDER'], "consultor_temp.jpg")
-            img_data = requests.get(foto_url).content
-            with open(temp_foto, 'wb') as f:
-                f.write(img_data)
-
-            # 2. Conectamos ao InnoAI (use 'token' ou 'hf_token' conforme sua versão instalada)
             hf_token = os.getenv("HF_TOKEN")
             client_gpu = Client("InnoAI/LivePortrait", token=hf_token) 
             
-            # 3. Chamada de API específica para ÁUDIO (InnoAI)
-            # Parâmetros: imagem, áudio, e as flags de movimento
+            foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
+            
+            # MUDANÇA CRUCIAL: O InnoAI costuma usar '/process' ou '/generate'
+            # Se o /predict falhou, tentamos o '/process' que é o padrão do InnoAI
             result = client_gpu.predict(
-                input_image_path=handle_file(temp_foto),
+                input_image_path=handle_file(foto_url),
                 input_audio_path=handle_file(audio_path),
-                api_name="/predict"
+                flag_relative=True,   # Parâmetro comum no InnoAI
+                flag_do_crop=True,    # Parâmetro comum no InnoAI
+                flag_remap=True,      # Parâmetro comum no InnoAI
+                api_name="/process"   # <--- TROCADO DE /predict PARA /process
             )
+            
+            # O InnoAI retorna o caminho do vídeo diretamente ou em uma lista
+            video_url = result[0] if isinstance(result, (list, tuple)) else result
             print("✅ Vídeo renderizado com sucesso!", flush=True)
 
             # --- PASSO 3: FINALIZAÇÃO ---
             html_video = f"""
             <div class='video-container-premium'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
-                    <source src='{result}' type='video/mp4'>
+                    <source src='{video_url}' type='video/mp4'>
                 </video>
             </div>
             """
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            print(f"🏆 [SUCESSO] Vídeo finalizado para o Report {report_id}")
+            print(f"🏆 [SUCESSO] Processo finalizado para o Report {report_id}")
 
         except Exception as e:
             error_msg = str(e)
             print(f"❌ ERRO NO VÍDEO: {error_msg}", flush=True)
+            # TENTATIVA DE AUTO-CORREÇÃO: Se /process falhar, o erro dirá o nome certo
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
-                report.ai_response = f"<div class='p-4 bg-red-900/20 border border-red-500 rounded-xl text-red-400 text-xs font-mono mb-4'>LOG TÉCNICO: {error_msg}</div>" + report.ai_response
+                report.ai_response = f"<div class='p-4 bg-red-900/20 border border-red-500 rounded-xl text-red-400 text-xs font-mono mb-4'>LOG: {error_msg}</div>" + report.ai_response
                 db.session.commit()
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
