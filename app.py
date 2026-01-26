@@ -137,26 +137,26 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             report = Report.query.get(report_id)
             print(f"🎙️ [PASSO 1/3] Gerando Áudio com Edge-TTS (Neural)...", flush=True)
 
-            # Roteiro Curto e Profissional
             roteiro = f"Olá, sou o consultor da Rendey. Analisei seu relatório de {report.tool_name} e os detalhes estratégicos estão logo abaixo."
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
 
-            # FUNÇÃO ASSÍNCRONA PARA GERAR O ÁUDIO
             async def generate_voice():
-                # 'pt-BR-AntonioNeural' é a voz de consultor sênior perfeita
-                # Se preferir feminina, use 'pt-BR-FranciscaNeural'
                 communicate = edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural")
                 await communicate.save(audio_path)
 
-            # Executa a geração do áudio
             asyncio.run(generate_voice())
             print("✅ Áudio neural gerado com sucesso!", flush=True)
 
             # --- PASSO 2: GPU NVIDIA (LivePortrait) ---
             print("🎥 [PASSO 2/3] Renderizando Avatar na GPU NVIDIA...", flush=True)
-            client_gpu = Client("Kwai-VGI/LivePortrait") 
             
-            # Sua foto de consultor
+            # AQUI ESTÁ A MUDANÇA:
+            # Pegamos o token que você salvou nos Secrets do Hugging Face
+            hf_token = os.getenv("HF_TOKEN") 
+            
+            # Passamos o hf_token aqui para autenticar a chamada
+            client_gpu = Client("Kwai-VGI/LivePortrait", hf_token=hf_token) 
+            
             foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
             
             result = client_gpu.predict(
