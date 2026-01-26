@@ -38,3 +38,4 @@ python-dotenv
 apify-client
 sentence-transformers # Se você usa RAG com o all-MiniLM-L6-v2
 gradio_client
+edge-tts

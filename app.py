@@ -13,6 +13,8 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_talisman import Talisman
+import edge_tts
+import asyncio
 
 # Imports de Funcionalidades Locais
 from modules.video_maker import criar_video_reels
@@ -20,6 +22,10 @@ from pypdf import PdfReader
 
 # --- [OTIMIZAÇÃO CRÍTICA] PRE-LOAD DO MOTOR NA RAM ---
 # Isso impede o erro "BertModel LOAD REPORT" dentro do worker que trava o app
+async def gerar_audio_edge(texto, path):
+    # 'pt-BR-AntonioNeural' é excelente para consultoria
+    communicate = edge_tts.Communicate(texto, "pt-BR-AntonioNeural")
+    await communicate.save(path)
 print("🚀 Pré-carregando motor de inteligência estratégica (all-MiniLM-L6-v2)...", flush=True)
 try:
     from rag_engine import filtrar_melhores_dados 
@@ -123,55 +129,62 @@ def worker_video_tutorial(app_obj, report_id, user_id):
     with app_obj.app_context():
         try:
             from gradio_client import Client, handle_file
-            from openai import AzureOpenAI
+            import edge_tts
+            import asyncio
             import os
+            import time
 
             report = Report.query.get(report_id)
-            print(f"🎙️ [PASSO 1] Conectando à Azure TTS...", flush=True)
+            print(f"🎙️ [PASSO 1/3] Gerando Áudio com Edge-TTS (Neural)...", flush=True)
 
-            az_client = AzureOpenAI(
-                azure_endpoint=os.getenv("AZURE_ENDPOINT"), 
-                api_key=os.getenv("AZURE_API_KEY"), 
-                api_version="2024-05-01-preview" # Versão mais estável para Áudio
-            )
-
-            # Roteiro Curto
-            roteiro = f"Olá, sou o consultor da Rendey. Analisei seu relatório de {report.tool_name} e os detalhes estão abaixo."
+            # Roteiro Curto e Profissional
+            roteiro = f"Olá, sou o consultor da Rendey. Analisei seu relatório de {report.tool_name} e os detalhes estratégicos estão logo abaixo."
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
 
-            # CHAMADA DE ÁUDIO
-            response = az_client.audio.speech.create(
-                model="tts", # <--- Verifique se no portal o nome é exatamente este
-                voice="onyx",
-                input=roteiro
-            )
-            response.stream_to_file(audio_path)
-            print("✅ Áudio gerado!", flush=True)
+            # FUNÇÃO ASSÍNCRONA PARA GERAR O ÁUDIO
+            async def generate_voice():
+                # 'pt-BR-AntonioNeural' é a voz de consultor sênior perfeita
+                # Se preferir feminina, use 'pt-BR-FranciscaNeural'
+                communicate = edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural")
+                await communicate.save(audio_path)
 
-            # PASSO 2: GPU NVIDIA
+            # Executa a geração do áudio
+            asyncio.run(generate_voice())
+            print("✅ Áudio neural gerado com sucesso!", flush=True)
+
+            # --- PASSO 2: GPU NVIDIA (LivePortrait) ---
+            print("🎥 [PASSO 2/3] Renderizando Avatar na GPU NVIDIA...", flush=True)
             client_gpu = Client("Kwai-VGI/LivePortrait") 
+            
+            # Sua foto de consultor
+            foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
+            
             result = client_gpu.predict(
-                input_image=handle_file("https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"),
+                input_image=handle_file(foto_url),
                 input_audio=handle_file(audio_path),
                 api_name="/predict"
             )
 
-            # FINALIZAÇÃO
-            html_video = f"<div class='video-container-premium'><video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'><source src='{result}' type='video/mp4'></video></div>"
+            # --- PASSO 3: FINALIZAÇÃO ---
+            html_video = f"""
+            <div class='video-container-premium'>
+                <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
+                    <source src='{result}' type='video/mp4'>
+                </video>
+            </div>
+            """
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
+            print(f"🏆 [SUCESSO] Vídeo finalizado para o Report {report_id}")
 
         except Exception as e:
-            # ESTA LINHA É A CHAVE: Ela escreve o erro no seu banco de dados
-            error_detalhado = f"❌ ERRO TÉCNICO NO VÍDEO: {str(e)}"
+            error_detalhado = f"❌ ERRO NO VÍDEO: {str(e)}"
             print(error_detalhado, flush=True)
-            
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
-                # Isso vai aparecer na sua tela de resultado se o vídeo falhar
-                report.ai_response = f"<div class='p-6 bg-red-900/20 border border-red-500 rounded-2xl text-red-400 text-xs font-mono'>{error_detalhado}</div>" + report.ai_response
+                report.ai_response = f"<div class='p-4 bg-red-900/20 border border-red-500 rounded-xl text-red-400 text-xs font-mono mb-4'>{error_detalhado}</div>" + report.ai_response
                 db.session.commit()
 
 # --- 6. HIERARQUIA DE PLANOS ---
