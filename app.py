@@ -121,73 +121,82 @@ def load_user(user_id): return User.query.get(int(user_id))
 # --- 5. [REFATORADO] WORKER DE VÍDEO NÍVEL NOTEBOOKLM (GRÁTIS) ---
 def worker_video_tutorial(app_obj, report_id, user_id):
     """
-    Gera o Tutorial em Vídeo Nível NotebookLM (Avatar Falante).
-    Usa GPU Externa para custo zero e evitar travamentos no Hugging Face.
+    WORKER DE ELITE: Unificado na Azure + GPU NVIDIA Externa.
+    Logs granulares para rastreamento de gargalos.
     """
     with app_obj.app_context():
         try:
             from gradio_client import Client, handle_file
-            from openai import AzureOpenAI, OpenAI
-            report = Report.query.get(report_id)
+            from openai import AzureOpenAI
+            import time
             
-            print(f"🎙️ Iniciando Roteiro para o Report {report_id}...", flush=True)
+            report = Report.query.get(report_id)
+            print(f"🚀 [WORKER VIDEO] Iniciando processamento para Report {report_id}", flush=True)
 
-            # 1. GERAR ROTEIRO ESTRATÉGICO (Azure OpenAI)
-            az = AzureOpenAI(
+            # --- 1. CONFIGURAÇÃO DO CLIENTE AZURE ---
+            # Unificado: Usamos a mesma chave para texto e voz
+            az_client = AzureOpenAI(
                 azure_endpoint=os.getenv("AZURE_ENDPOINT"), 
                 api_key=os.getenv("AZURE_API_KEY"), 
                 api_version="2024-02-15-preview"
             )
+
+            # --- 2. GERAÇÃO DE ROTEIRO (LOG PASSO 1) ---
+            print("📝 [PASSO 1/3] Gerando roteiro estratégico via Azure GPT...", flush=True)
+            start_time = time.time()
             
             prompt_roteiro = f"""
-            Aja como um consultor sênior executivo da Rendey Intelligence. 
-            Resuma este relatório em um briefing de 30 segundos, focado em lucro e estratégia. 
+            Aja como Renan Bezerra, consultor sênior da Rendey Intelligence. 
+            Resuma este relatório em um briefing de 30 segundos, focado em lucro imediato. 
             Comece com 'Olá, analisei sua operação e aqui está o plano estratégico para hoje.'. 
             Relatório: {report.ai_response[:1000]}
             """
             
-            resp = az.chat.completions.create(
+            resp = az_client.chat.completions.create(
                 model="meu-gpt", 
                 messages=[{"role": "user", "content": prompt_roteiro}]
             )
             roteiro_texto = resp.choices[0].message.content
+            print(f"✅ Roteiro gerado em {int(time.time() - start_time)}s", flush=True)
 
-            # 2. GERAR ÁUDIO PREMIUM (OpenAI TTS - Voz Profissional)
-            client_audio = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            # --- 3. GERAÇÃO DE ÁUDIO (LOG PASSO 2) ---
+            print("🔊 [PASSO 2/3] Convertendo roteiro em voz via Azure TTS...", flush=True)
+            start_time = time.time()
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"voice_{report_id}.mp3")
             
-            response = client_audio.audio.speech.create(
-                model="tts-1", 
-                voice="onyx", # Voz profunda e autoritária
+            # NOTA: O modelo 'tts' deve estar implantado no seu Azure AI Studio
+            response = az_client.audio.speech.create(
+                model="tts", # Nome do seu Deployment de voz na Azure
+                voice="onyx",
                 input=roteiro_texto
             )
             response.stream_to_file(audio_path)
+            print(f"✅ Áudio MP3 gerado em {int(time.time() - start_time)}s", flush=True)
 
-            # 3. CONECTAR NA GPU NVIDIA EXTERNA (LivePortrait)
-            # Link da sua foto oficial que você subiu no GitHub
+            # --- 4. RENDERIZAÇÃO NA GPU NVIDIA (LOG PASSO 3) ---
+            print("🎥 [PASSO 3/3] Enviando para GPU Externa (LivePortrait)... AGUARDANDO FILA.", flush=True)
+            start_time = time.time()
+            
+            # Link da sua foto oficial no repositório de assets
             foto_consultor_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
             
-            print(f"🎥 Renderizando Avatar Falante com GPU Externa...", flush=True)
+            # Conexão com o Space da Kwai-VGI
+            client_gpu = Client("Kwai-VGI/LivePortrait") 
             
-            # Usando o Space da Kwai-VGI (Potente e Grátis)
-            client = Client("Kwai-VGI/LivePortrait") 
-            
-            result = client.predict(
+            # Esta parte pode demorar se houver fila (queue) no Space gratuito
+            result = client_gpu.predict(
                 input_image=handle_file(foto_consultor_url),
                 input_audio=handle_file(audio_path),
                 api_name="/predict"
             )
+            print(f"✅ Renderização finalizada em {int(time.time() - start_time)}s!", flush=True)
 
-            # 4. FINALIZAÇÃO E ATUALIZAÇÃO DO BANCO
-            # 'result' já é a URL do vídeo .mp4 gerado
-            video_url = result 
-            
-            # Tag HTML específica para o Modal Cinema que criamos
+            # --- 5. INJEÇÃO DE RESULTADO E MODAL ---
+            # Usando a classe 'video-container-premium' para disparar o seu Cinema Modal
             html_video = f"""
             <div class='video-container-premium'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
-                    <source src='{video_url}' type='video/mp4'>
-                    Seu navegador não suporta vídeos.
+                    <source src='{result}' type='video/mp4'>
                 </video>
             </div>
             """
@@ -195,13 +204,17 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            print(f"✅ VÍDEO FINALIZADO: Consultoria entregue para o Report {report_id}")
+            print(f"🏆 [SUCESSO] Consultoria em vídeo entregue para o Report {report_id}", flush=True)
 
         except Exception as e:
-            print(f"❌ ERRO NA GERAÇÃO DE VÍDEO: {str(e)}")
+            error_msg = str(e)
+            print(f"❌ [ERRO CRÍTICO] Falha no Worker de Vídeo: {error_msg}", flush=True)
             report = Report.query.get(report_id)
-            report.status = "ERROR"
-            db.session.commit()
+            if report:
+                report.status = "ERROR"
+                # Mensagem amigável para o usuário, mas técnica no log
+                report.ai_response += f"\n\n<p class='text-red-500'>[Aviso da IA]: Não conseguimos processar o seu vídeo agora devido a uma alta demanda nas GPUs NVIDIA externas. O relatório de texto está preservado acima.</p>"
+                db.session.commit()
 
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
