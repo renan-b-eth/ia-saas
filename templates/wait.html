@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-[80vh] flex items-center justify-center px-4">
+    <div class="max-w-xl w-full text-center space-y-8">
+        
+        <div class="relative inline-block">
+            <div class="absolute inset-0 bg-blue-500 rounded-full blur-2xl opacity-20 animate-pulse"></div>
+            <div class="relative w-24 h-24 bg-gray-900 border-2 border-blue-500 rounded-3xl flex items-center justify-center text-4xl shadow-2xl">
+                <i class="fas fa-brain text-blue-400 animate-bounce"></i>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <h1 class="text-3xl font-black text-white tracking-tight uppercase">Gerando Inteligência Estratégica</h1>
+            <p class="text-gray-400 text-lg">Nossos agentes estão varrendo a internet e cruzando dados em tempo real para o seu negócio.</p>
+        </div>
+
+        <div class="relative h-4 bg-gray-800 rounded-full overflow-hidden border border-gray-700">
+            <div id="progress-bar" class="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-700 shadow-[0_0_20px_rgba(59,130,246,0.5)]" style="width: 5%"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-4 bg-gray-900/50 rounded-2xl border border-gray-800 text-left">
+                <p class="text-[10px] text-blue-400 font-bold uppercase mb-1">Status do Agente</p>
+                <p id="status-text" class="text-white text-xs font-mono">Conectando aos servidores...</p>
+            </div>
+            <div class="p-4 bg-gray-900/50 rounded-2xl border border-gray-800 text-left">
+                <p class="text-[10px] text-purple-400 font-bold uppercase mb-1">Tempo Estimado</p>
+                <p class="text-white text-xs font-mono">20 - 50 Segundos</p>
+            </div>
+        </div>
+
+        <p class="text-[10px] text-gray-600 uppercase tracking-widest font-black">Powered by Rendey LLC Intelligence Engine</p>
+    </div>
+</div>
+
+<script>
+    // Simulação de progresso visual enquanto o backend trabalha
+    let progress = 5;
+    const bar = document.getElementById('progress-bar');
+    const status = document.getElementById('status-text');
+    const messages = [
+        "Iniciando motores de busca...",
+        "Filtrando dados do Google Shopping...",
+        "Analisando competitividade local...",
+        "Gerando insights estratégicos...",
+        "Finalizando relatório para você..."
+    ];
+
+    let msgIndex = 0;
+    const interval = setInterval(() => {
+    
+        if (progress < 95) {
+            progress += Math.random() * 8;
+            bar.style.width = progress + "%";
+            
+            if (progress > (msgIndex + 1) * 20) {
+                status.innerText = messages[msgIndex];
+                msgIndex++;
+            }
+        }
+    }, 2000);
+
+    // Verificação real do status via AJAX (O seu código já deve ter essa lógica para redirecionar)
+    setInterval(function() {
+        fetch('/report_status/{{ report_id }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'COMPLETED') {
+                // Redireciona para a URL correta que criamos acima
+                window.location.href = `/tool/{{ tool_type }}/result/${data.id}`;
+            }
+        });
+    }, 3000);
+</script>
+{% endblock %}

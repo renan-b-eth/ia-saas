@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-16 px-4">
+    <div class="bg-gray-800 p-10 rounded-3xl border border-gray-700 shadow-2xl">
+        <h1 class="text-3xl font-black text-white mb-8 border-b border-gray-700 pb-4">Termos de Uso e Política de Conduta</h1>
+        
+        <div class="space-y-8 text-gray-300 leading-relaxed">
+            
+            <section>
+                <h2 class="text-xl font-bold text-blue-400 mb-3">1. Natureza do Serviço</h2>
+                <p>A Rendey LLC fornece agentes de Inteligência Artificial especializados exclusivamente em operações de varejo, marketing e gestão empresarial. O uso do saldo de processamento para fins não profissionais é estritamente proibido.</p>
+            </section>
+
+            <section class="bg-red-900/10 p-6 rounded-2xl border border-red-500/20">
+                <h2 class="text-xl font-bold text-red-400 mb-3">2. Política de Conduta e Guardrails</h2>
+                <p>Para garantir a eficiência do sistema e evitar o desperdício de recursos, nossos agentes são monitorados. É proibida a utilização para:</p>
+                <ul class="list-disc ml-6 mt-3 space-y-2">
+                    <li>Consultas sobre esportes (futebol, etc), política ou entretenimento genérico.</li>
+                    <li>Geração de conteúdo ofensivo, ilegal ou abusivo.</li>
+                    <li>Uso da interface como chat de conversação trivial.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-orange-400 mb-3">3. Sistema de Advertência e Suspensão</h2>
+                <p>O sistema aplica automaticamente advertências para desvios de conduta:</p>
+                <ul class="list-disc ml-6 mt-3 space-y-2">
+                    <li><strong>Advertência (1 e 2):</strong> Notificação visual imediata no painel.</li>
+                    <li><strong>Suspensão (3ª infração):</strong> Bloqueio total da conta por **12 (doze) horas**.</li>
+                </ul>
+            </section>
+
+            <section class="bg-gray-900/50 p-6 rounded-2xl">
+                <h2 class="text-xl font-bold text-white mb-3">4. Política de Não-Reembolso</h2>
+                <p>Ao aceitar estes termos, o usuário declara estar ciente de que o tempo de suspensão decorrente de violação das regras **não será reembolsado nem compensado** em créditos ou dias de uso, uma vez que os custos de infraestrutura e impostos da LLC são processados integralmente no ato da assinatura.</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-gray-400 mb-3">5. Jurisdição</h2>
+                <p>Este contrato é regido pelas leis do estado de Delaware, EUA, sede da Rendey LLC.</p>
+            </section>
+        </div>
+
+        <div class="mt-12 text-center">
+            <a href="/dashboard" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-10 rounded-xl transition">
+                Compreendo e Aceito
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

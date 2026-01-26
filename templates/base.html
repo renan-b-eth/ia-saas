@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Varejo IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+    /* Garante que os campos de input sejam sempre clicáveis */
+    textarea, input, select, button {
+        position: relative !important;
+        z-index: 50 !important;
+        pointer-events: auto !important;
+    }
+    
+    /* Melhora o scroll da área de texto */
+    textarea {
+        min-height: 120px;
+        line-height: 1.5;
+    }
+</style>
+</head>
+<body class="bg-gray-900 text-white font-sans antialiased">
+
+    <nav class="bg-gray-800 border-b border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 text-green-500 font-bold text-xl">
+                        🚀 Rendey SaaS
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a href="/" class="hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+                            <a href="/knowledge" class="hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">📄 Meus PDFs</a>
+                            <a href="tool/scanner" class="hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">📸 Scanner Preços</a>
+                            <a href="/pricing" class="text-yellow-400 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">💎 Assinar Premium</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="-mr-2 flex md:hidden">
+                    <button type="button" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="bg-gray-800 p-2 rounded-md text-gray-400 hover:text-white">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="hidden md:hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="/" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">Dashboard</a>
+                <a href="/knowledge" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">Meus PDFs</a>
+                <a href="/pricing" class="block px-3 py-2 rounded-md text-base font-medium text-yellow-400">Assinar</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-4 rounded {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="mt-20 py-10 border-t border-gray-800 text-center">
+    <p class="text-gray-500 text-xs uppercase tracking-widest mb-4">© 2026 Rendey LLC • Delaware Office</p>
+    <div class="flex justify-center gap-6">
+        <a href="/terms" class="text-gray-600 hover:text-blue-400 text-xs transition">Termos de Uso</a>
+        <a href="/pricing" class="text-gray-600 hover:text-blue-400 text-xs transition">Planos</a>
+        <a href="mailto:suporte@rendey.com" class="text-gray-600 hover:text-blue-400 text-xs transition">Suporte</a>
+    </div>
+</footer>
+
+</body>
+</html>

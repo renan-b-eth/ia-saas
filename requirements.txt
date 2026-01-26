@@ -1,0 +1,40 @@
+flask
+flask_sqlalchemy
+flask_login
+openai
+apify-client
+gunicorn
+werkzeug
+psycopg2-binary
+flask-limiter
+flask-talisman
+sentry-sdk
+redis
+xhtml2pdf
+pypdf
+sentence-transformers
+numpy
+scikit-learn
+moviepy==1.0.3
+edge-tts
+asyncio
+imageio-ffmpeg
+langchain
+langchain-community
+faiss-cpu
+pypdf
+stripe
+Flask-Mail
+requests
+Flask
+Flask-SQLAlchemy
+psycopg2-binary # ou psycopg2
+Flask-Login
+Flask-Mail
+openai # Para a voz TTS
+moviepy # Para o vídeo
+Werkzeug
+python-dotenv
+apify-client
+sentence-transformers # Se você usa RAG com o all-MiniLM-L6-v2
+gradio_client

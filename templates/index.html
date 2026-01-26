@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SaaS Varejo Inteligente</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">🚀 Inteligência de Varejo</h1>
+        <p class="text-center text-muted">Selecione um agente para começar a análise</p>
+        
+        <div class="row mt-5">
+            {% for tool in tools %}
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100 border-0">
+                    <div class="card-body text-center">
+                        <div class="display-1 mb-3">{{ tool.icon }}</div>
+                        <h4>{{ tool.name }}</h4>
+                        <p class="small text-muted">{{ tool.description }}</p>
+                        <a href="/tool/{{ tool.id }}" class="btn btn-dark w-100">Abrir Ferramenta</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

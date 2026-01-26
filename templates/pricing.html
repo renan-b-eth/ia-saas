@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="py-16 px-4">
+    <div class="text-center mb-16">
+        <p class="text-blue-500 font-black uppercase tracking-widest text-sm mb-3">Rendey LLC • Tecnologia Americana no seu Varejo</p>
+        <h1 class="text-5xl md:text-6xl font-black text-white mb-6 leading-tight">Escolha o seu nível de <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-green-400">Poder</span></h1>
+        <p class="text-gray-400 text-xl max-w-3xl mx-auto">Pare de perder tempo com tarefas manuais. Ative um de nossos agentes e coloque seu varejo no piloto automático hoje mesmo.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto items-stretch">
+        
+        <div class="bg-gray-800/50 p-8 rounded-3xl border border-gray-700 flex flex-col hover:border-blue-500/50 transition-all group">
+            <h3 class="text-2xl font-bold text-white mb-2">Starter</h3>
+            <p class="text-gray-400 text-sm mb-6">O básico essencial para quem quer começar a se destacar nas redes sociais.</p>
+            
+            <div class="mb-8">
+                <span class="text-5xl font-black text-white">$18.73</span>
+                <span class="text-xl text-gray-500 font-medium ml-1">(R${{ "%.2f"|format(brl.starter) }})</span>
+                <p class="text-gray-500 text-xs mt-2 italic">* Cobrança em USD, processado em BRL</p>
+            </div>
+
+            <div class="space-y-4 flex-1 mb-10">
+                <p class="text-white font-bold text-sm uppercase tracking-wider">Benefícios Inclusos:</p>
+                <ul class="space-y-3 text-gray-300">
+                    <li class="flex items-start gap-3"><i class="fas fa-check-circle text-blue-500 mt-1"></i> <span><strong>Roteirista de Posts:</strong> Ideias e legendas virais para Instagram.</span></li>
+                    <li class="flex items-start gap-3"><i class="fas fa-check-circle text-blue-500 mt-1"></i> <span><strong>Gestão de Reviews:</strong> Respostas profissionais automáticas.</span></li>
+                    <li class="flex items-start gap-3"><i class="fas fa-check-circle text-blue-500 mt-1"></i> <span><strong>Agente de RH:</strong> Descrições de vagas e roteiros de entrevista.</span></li>
+                    <li class="flex items-start gap-3"><i class="fas fa-check-circle text-blue-500 mt-1"></i> <span><strong>Consultor Promocional:</strong> Campanhas para datas sazonais.</span></li>
+                    <li class="flex items-start gap-3"><i class="fas fa-check-circle text-blue-500 mt-1"></i> <span><strong>Engenharia de Menu:</strong> Otimização de lucro no cardápio.</span></li>
+                </ul>
+            </div>
+
+            <form action="/create-checkout-session" method="POST">
+                <input type="hidden" name="plan_type" value="starter">
+                <button type="submit" class="w-full bg-gray-700 group-hover:bg-blue-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg">Começar agora</button>
+            </form>
+        </div>
+
+        <div class="bg-gray-800 p-8 rounded-3xl border-2 border-green-500 flex flex-col relative transform lg:scale-110 shadow-[0_20px_50px_rgba(34,197,94,0.15)]">
+            <div class="absolute -top-5 left-1/2 -translate-x-1/2 bg-green-500 text-black text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg">Custo-Benefício Real</div>
+            
+            <h3 class="text-2xl font-bold text-white mb-2">Pro Varejo</h3>
+            <p class="text-gray-400 text-sm mb-6">A ferramenta completa para quem vive o varejo físico e precisa de inteligência visual.</p>
+            
+            <div class="mb-8">
+                <span class="text-5xl font-black text-white">$31.93</span>
+                <span class="text-xl text-gray-500 font-medium ml-1">(R${{ "%.2f"|format(brl.pro) }})</span>
+                <p class="text-green-500/80 text-xs mt-2 font-bold">✓ Liberação Imediata de Agentes de Visão</p>
+            </div>
+
+            <div class="space-y-4 flex-1 mb-10">
+                <p class="text-white font-bold text-sm uppercase tracking-wider">Tudo do Starter, mais:</p>
+                <ul class="space-y-3 text-gray-300">
+                    <li class="flex items-start gap-3"><i class="fas fa-bolt text-green-500 mt-1 shadow-green-500"></i> <span><strong>Scanner de Preços:</strong> Tire foto da etiqueta e veja o preço online.</span></li>
+                    <li class="flex items-start gap-3"><i class="fas fa-bolt text-green-500 mt-1"></i> <span><strong>Espião de Concorrentes:</strong> Analise fraquezas dos vizinhos via Maps.</span></li>
+                    <li class="flex items-start gap-3"><i class="fas fa-bolt text-green-500 mt-1"></i> <span><strong>Gestor de Prateleira:</strong> IA analisa falta de estoque por foto.</span></li>
+                    <li class="flex items-start gap-3"><i class="fas fa-bolt text-green-500 mt-1"></i> <span><strong>Ranking de Compras:</strong> Encontre o fornecedor mais barato na hora.</span></li>
+                    <li class="flex items-start gap-3"><i class="fas fa-bolt text-green-500 mt-1"></i> <span><strong>Auditoria de Operação:</strong> IA detecta falhas nos seus processos.</span></li>
+                </ul>
+            </div>
+
+            <form action="/create-checkout-session" method="POST">
+                <input type="hidden" name="plan_type" value="pro">
+                <button type="submit" class="w-full bg-green-500 hover:bg-green-400 text-black font-black py-5 rounded-2xl transition-all shadow-[0_10px_30px_rgba(34,197,94,0.3)] text-lg">Dominar o Mercado</button>
+            </form>
+        </div>
+
+        <div class="bg-gray-800/50 p-8 rounded-3xl border border-purple-500/30 flex flex-col hover:border-purple-500 transition-all group">
+            <h3 class="text-2xl font-bold text-white mb-2">Agency</h3>
+            <p class="text-gray-400 text-sm mb-6">Para quem quer automação de vídeo e uma IA que "conhece" a fundo sua empresa.</p>
+            
+            <div class="mb-8">
+                <span class="text-5xl font-black text-white">$94.83</span>
+                <span class="text-xl text-gray-500 font-medium ml-1">(R${{ "%.2f"|format(brl.agency) }})</span>
+                <p class="text-purple-400 text-xs mt-2 font-bold">O Poder Máximo da Rendey LLC</p>
+            </div>
+
+            <div class="space-y-4 flex-1 mb-10">
+                <p class="text-white font-bold text-sm uppercase tracking-wider">Tudo do Pro, mais:</p>
+                <ul class="space-y-3 text-gray-300">
+                    <li class="flex items-start gap-3"><i class="fas fa-star text-purple-500 mt-1"></i> <span><strong>Gerador de Reels (Video IA):</strong> IA cria o vídeo pronto com narração.</span></li>
+                    <li class="flex items-start gap-3"><i class="fas fa-star text-purple-500 mt-1"></i> <span><strong>Cofre de PDFs (Memória):</strong> Treine a IA com seus próprios manuais.</span></li>
+                    <li class="flex items-start gap-3"><i class="fas fa-star text-purple-500 mt-1"></i> <span><strong>Análise de Contratos:</strong> IA revisa documentos jurídicos e riscos.</span></li>
+                    <li class="flex items-start gap-3"><i class="fas fa-star text-purple-500 mt-1"></i> <span><strong>Suporte Prioritário:</strong> Acesso direto ao nosso time técnico.</span></li>
+                </ul>
+            </div>
+
+            <form action="/create-checkout-session" method="POST">
+                <input type="hidden" name="plan_type" value="agency">
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg">Escalar agora</button>
+            </form>
+        </div>
+
+    </div>
+
+    <div class="mt-20 text-center flex flex-col items-center">
+        <p class="text-gray-500 text-sm uppercase font-bold tracking-widest mb-6">Pagamento Seguro & Global</p>
+        <div class="flex gap-8 grayscale opacity-50 hover:opacity-100 transition-all">
+            <i class="fab fa-stripe text-5xl text-white"></i>
+            <i class="fab fa-cc-visa text-5xl text-white"></i>
+            <i class="fab fa-cc-mastercard text-5xl text-white"></i>
+            <i class="fab fa-pix text-5xl text-white"></i>
+        </div>
+        <p class="mt-8 text-gray-600 text-xs max-w-md">Ao assinar, você concorda com nossos termos de uso. O cancelamento pode ser feito a qualquer momento através do seu painel de controle.</p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.db
+.DS_Storeuploads/
+uploads/
+venv/
+consultor.jpg
