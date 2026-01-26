@@ -126,24 +126,16 @@ def load_user(user_id): return User.query.get(int(user_id))
 
 # --- 5. [REFATORADO] WORKER DE VÍDEO NÍVEL NOTEBOOKLM (GRÁTIS) ---
 def worker_video_tutorial(app_obj, report_id, user_id):
-    """
-    Worker de Elite: Audio via Edge-TTS e Vídeo via GPU NVIDIA (LivePortrait).
-    """
     with app_obj.app_context():
         try:
             from gradio_client import Client, handle_file
             import edge_tts
             import asyncio
             import os
-            import time
 
             report = Report.query.get(report_id)
-            print(f"🚀 [WORKER VIDEO] Iniciando Report {report_id}", flush=True)
+            print(f"🎙️ [PASSO 1/3] Gerando Áudio com Edge-TTS...", flush=True)
 
-            # --- PASSO 1/3: GERAÇÃO DE ÁUDIO NEURAL (GRÁTIS E RÁPIDO) ---
-            print(f"🎙️ [PASSO 1] Gerando áudio via Edge-TTS...", flush=True)
-            
-            # Roteiro dinâmico curto
             roteiro = f"Olá, sou o consultor da Rendey. Analisei seu relatório de {report.tool_name} e os detalhes estratégicos estão logo abaixo."
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
 
@@ -153,30 +145,27 @@ def worker_video_tutorial(app_obj, report_id, user_id):
                 await communicate.save(audio_path)
 
             asyncio.run(generate_voice())
-            print("✅ Áudio neural gerado com sucesso!", flush=True)
+            print("✅ Áudio gerado com sucesso!", flush=True)
 
-            # --- PASSO 2/3: RENDERIZAÇÃO NA GPU NVIDIA (LIVEPORTRAIT) ---
-            print("🎥 [PASSO 2] Renderizando Avatar na GPU NVIDIA...", flush=True)
+            # --- PASSO 2: GPU NVIDIA (NOVO MIRROR PÚBLICO) ---
+            print("🎥 [PASSO 2/3] Renderizando Avatar na GPU NVIDIA...", flush=True)
             
-            # Puxamos o token que você salvou nos Secrets do Hugging Face
             hf_token = os.getenv("HF_TOKEN") 
             
-            # CORREÇÃO: Usando 'token' em vez de 'hf_token' para compatibilidade com Gradio
-            client_gpu = Client("Kwai-VGI/LivePortrait", token=hf_token) 
+            # Mudamos para o mirror 'yzd-v/LivePortrait', que está ATIVO e PÚBLICO
+            client_gpu = Client("yzd-v/LivePortrait", token=hf_token) 
             
-            # Foto oficial do seu consultor
             foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
             
+            # Chamada específica para este servidor (parâmetros: source, driving_audio, opcões)
             result = client_gpu.predict(
-                input_image=handle_file(foto_url),
-                input_audio=handle_file(audio_path),
+                source_image=handle_file(foto_url),
+                driving_audio=handle_file(audio_path),
                 api_name="/predict"
             )
-            print("✅ Renderização concluída pela GPU!", flush=True)
+            print("✅ Vídeo renderizado pela GPU!", flush=True)
 
-            # --- PASSO 3/3: FINALIZAÇÃO E INJEÇÃO NO HTML ---
-            print("🏆 [PASSO 3] Finalizando relatório...", flush=True)
-            
+            # --- PASSO 3: FINALIZAÇÃO ---
             html_video = f"""
             <div class='video-container-premium'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
@@ -184,22 +173,19 @@ def worker_video_tutorial(app_obj, report_id, user_id):
                 </video>
             </div>
             """
-            
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            print(f"✨ [SUCESSO] Processo completo para o Report {report_id}")
+            print(f"🏆 [SUCESSO] Vídeo finalizado para o Report {report_id}")
 
         except Exception as e:
-            error_detalhado = f"❌ ERRO NO VÍDEO: {str(e)}"
-            print(error_detalhado, flush=True)
+            error_msg = str(e)
+            print(f"❌ ERRO NO VÍDEO: {error_msg}", flush=True)
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
-                # Exibe o erro na interface para facilitar o seu diagnóstico
-                report.ai_response = f"<div class='p-4 bg-red-900/20 border border-red-500 rounded-xl text-red-400 text-xs font-mono mb-4'>{error_detalhado}</div>" + report.ai_response
+                report.ai_response = f"<div class='p-4 bg-red-900/20 border border-red-500 rounded-xl text-red-400 text-xs font-mono mb-4'>ERRO TÉCNICO: {error_msg}</div>" + report.ai_response
                 db.session.commit()
-
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
 # --- [NOVO] LÓGICA DO TRIAL (14 DIAS) ---
