@@ -121,16 +121,15 @@ class Document(db.Model):
     file_type = db.Column(db.String(20))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-@login_manager.user_loader
-def load_user(user_id): return User.query.get(int(user_id))
 def worker_video_tutorial(app_obj, report_id, user_id):
     with app_obj.app_context():
         import datetime
         import shutil 
+        import time
         
         def log_status(msg):
             timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-            print(f"[{timestamp}] 🛠️ [WORKER] {msg}", flush=True)
+            print(f"[{timestamp}] 🛠️ [WORKER TANK] {msg}", flush=True)
 
         try:
             from gradio_client import Client, handle_file
@@ -140,7 +139,7 @@ def worker_video_tutorial(app_obj, report_id, user_id):
 
             HF_TOKEN = os.getenv("HF_TOKEN")
             
-            log_status(f"🚀 INICIANDO REPORT: {report_id} no mirror yuvraj108c")
+            log_status(f"🚀 INICIANDO REPORT: {report_id} (Modo 12 Mirrors)")
             report = Report.query.get(report_id)
 
             # --- PASSO 1: ÁUDIO ---
@@ -155,26 +154,61 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             
             asyncio.run(generate_voice())
 
-            # --- PASSO 2: CONEXÃO COM TOKEN ---
-            log_status("🔗 [2/3] Conectando ao yuvraj108c com Token...")
-            client = Client("yuvraj108c/Wav2Lip", hf_token=HF_TOKEN) 
+            # --- PASSO 2: A LISTA DE GUERRA (12 MIRRORS) ---
+            # O código vai tentar um por um.
+            mirrors = [
+                "devxpy/wav2lip",           # 1. O Original (Mais provável)
+                "camenduru/Wav2Lip",        # 2. Clone muito estável
+                "guoqcn/Wav2Lip",           # 3. Clássico
+                "daanelson/Wav2Lip",        # 4. Alternativa comum
+                "vumichien/Wav2Lip",        # 5. Outro dev famoso
+                "sepia/Wav2Lip",            # 6. Versão leve
+                "ritwikraha/Wav2Lip",       # 7. Backup
+                "ShuhongChen/Wav2Lip",      # 8. Acadêmico
+                "kadirnar/Wav2Lip",         # 9. Demo simples
+                "on1onway/Wav2Lip",         # 10. Alternativo
+                "ajay-sainy/Wav2Lip",       # 11. Clone recente
+                "suv/Wav2Lip-GFPGAN"        # 12. Com melhoria de rosto (se funcionar, é top)
+            ]
             
+            result = None
+            last_error = ""
             foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
-            
-            log_status("📤 Enviando arquivos...")
-            
-            # Usando fn_index=0 para se adaptar ao novo mirror
-            result = client.predict(
-                handle_file(foto_url),
-                handle_file(audio_path),
-                fn_index=0
-            )
-            
-            log_status("✅ Vídeo gerado! Baixando...")
 
-            # --- PASSO 3: SALVAR ---
+            for i, mirror in enumerate(mirrors):
+                try:
+                    log_status(f"💣 Tentativa {i+1}/12: Conectando ao {mirror} ...")
+                    
+                    # Token é vital para evitar erro 403
+                    client = Client(mirror, hf_token=HF_TOKEN)
+                    
+                    # fn_index=0 é o padrão universal para Wav2Lip
+                    result = client.predict(
+                        handle_file(foto_url),
+                        handle_file(audio_path),
+                        fn_index=0
+                    )
+                    
+                    log_status(f"✅ SUCESSO! O mirror {mirror} funcionou!")
+                    break # Sai do loop imediatamente
+                    
+                except Exception as e:
+                    # Se falhar, só avisa e parte pro próximo
+                    log_status(f"❌ Falha no {mirror}. Tentando próximo... (Erro: {str(e)[:50]}...)")
+                    last_error = str(e)
+                    time.sleep(1) # Pausa dramática de 1s para o servidor não bloquear
+            
+            if not result:
+                log_status("☠️ TODOS OS 12 MIRRORS FALHARAM.")
+                raise Exception(f"Esgotamos os 12 mirrors. Último erro: {last_error}")
+
+            # --- PASSO 3: BAIXAR E SALVAR (Download Local) ---
+            log_status("💾 Salvando vídeo no servidor local...")
+            
+            # Tratamento robusto do retorno
             if isinstance(result, (list, tuple)):
-                caminho_temp = result[0] # Geralmente é o primeiro item da lista
+                # Pega o primeiro caminho de arquivo válido
+                caminho_temp = next((x for x in result if isinstance(x, str) and x.endswith('.mp4')), result[0])
             elif isinstance(result, dict):
                 caminho_temp = result.get('video') or result.get('value')
             else:
@@ -183,8 +217,8 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             video_filename = f"video_final_{report_id}.mp4"
             video_path_final = os.path.join(app_obj.config['UPLOAD_FOLDER'], video_filename)
 
+            # Move para a pasta do seu site
             shutil.move(caminho_temp, video_path_final)
-            
             video_url_publica = f"/static/uploads/{video_filename}"
             
             html_video = f"""
@@ -197,11 +231,11 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            log_status(f"🏆 VITÓRIA! Vídeo salvo em {video_path_final}")
+            log_status(f"🏆 VITÓRIA FINAL! Vídeo salvo em {video_path_final}")
 
         except Exception as e:
             error_msg = str(e)
-            log_status(f"💥 ERRO: {error_msg}")
+            log_status(f"💥 ERRO GERAL: {error_msg}")
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
