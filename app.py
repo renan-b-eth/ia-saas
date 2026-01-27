@@ -138,55 +138,64 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             import asyncio
             import os
 
-            log_status(f"🚀 INICIANDO PROCESSO PARA O RELATÓRIO: {report_id}")
+            log_status(f"🚀 INICIANDO REPORT: {report_id} com parâmetros exatos")
             report = Report.query.get(report_id)
-            
-            if not report:
-                log_status("❌ ERRO CRÍTICO: Relatório não encontrado no banco de dados.")
-                return
 
             # --- PASSO 1: ÁUDIO ---
-            log_status("🎙️ [PASSO 1/5] Iniciando geração de voz (Edge-TTS)...")
-            audio_filename = f"v_{report_id}.mp3"
-            audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], audio_filename)
+            log_status("🎙️ [PASSO 1/3] Gerando voz...")
+            audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
             
             async def generate_voice():
-                texto = f"Olá, sou o consultor da Rendey. Analisei seu relatório de {report.tool_name} e preparei as recomendações estratégicas."
+                texto = f"Olá! Sou o consultor da Rendey. Analisei os dados de {report.tool_name} e aqui está a estratégia."
                 communicate = edge_tts.Communicate(texto, "pt-BR-AntonioNeural")
                 await communicate.save(audio_path)
             
             asyncio.run(generate_voice())
-            log_status(f"✅ [PASSO 1/5] Áudio gerado e salvo em: {audio_path}")
+            log_status("✅ Áudio pronto.")
 
-            # --- PASSO 2: CONEXÃO ---
-            log_status("🔗 [PASSO 2/5] Tentando conexão com o Mirror manavisrani07...")
+            # --- PASSO 2: GPU (Mapeada pelo seu Log) ---
+            log_status("🔗 [PASSO 2/3] Conectando ao manavisrani07 com api_name='/generate'...")
             client = Client("manavisrani07/gradio-lipsync-wav2lip") 
-            log_status("✅ [PASSO 2/5] Conexão com Hugging Face estabelecida com sucesso.")
-
-            # --- PASSO 3: ENVIANDO DADOS ---
-            log_status("📤 [PASSO 3/5] Enviando Foto e Áudio para a GPU externa...")
+            
             foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
             
-            log_status(f"📸 Foto de origem: {foto_url}")
-            log_status("⏳ Aguardando processamento da IA (Isso pode levar de 30 a 120 segundos)...")
+            log_status("📤 Enviando parâmetros exatos do log...")
             
-            # Aqui é onde o Python "trava" enquanto a GPU trabalha
+            # AQUI ESTÁ A CORREÇÃO BASEADA NO SEU LOG:
             result = client.predict(
-                handle_file(foto_url),      # Imagem
-                handle_file(audio_path),     # Áudio
-                "wav2lip_gan",               # Modelo
-                1,                           # Resize factor
-                api_name="/predict"
+                video=handle_file(foto_url),      # Param 1: video (Required)
+                audio=handle_file(audio_path),    # Param 2: audio (Required)
+                checkpoint="wav2lip_gan",         # Param 3: checkpoint (Literal required)
+                no_smooth=0,                      # Param 4: no_smooth (Default 0)
+                resize_factor=1,                  # Param 5: resize_factor (Default 10, usamos 1 para menos zoom)
+                pad_top=0,                        # Param 6: pad_top
+                pad_bottom=0,                     # Param 7: pad_bottom
+                pad_left=1,                       # Param 8: pad_left
+                api_name="/generate"              # <--- O NOME CORRETO QUE VOCÊ ACHOU
             )
-            log_status("✅ [PASSO 3/5] Processamento concluído! Resposta recebida da API.")
+            
+            log_status("✅ Resposta recebida da API!")
 
-            # --- PASSO 4: DOWNLOAD DO RESULTADO ---
-            log_status("📥 [PASSO 4/5] Extraindo URL do vídeo gerado...")
-            video_url = result
-            log_status(f"🎥 Link do vídeo temporário: {video_url}")
+            # --- PASSO 3: TRATAR O RETORNO ---
+            # O log diz: Returns [Video] value_18: Dict(video: filepath, subtitles: ...)
+            # Então o resultado não é uma string direta, é um dicionário ou tupla.
+            
+            if isinstance(result, (list, tuple)):
+                # Às vezes vem numa lista [Dict]
+                dados = result[0]
+            else:
+                dados = result
+                
+            # Extraindo o caminho do vídeo de dentro do dicionário
+            if isinstance(dados, dict) and 'video' in dados:
+                video_url = dados['video']
+            else:
+                # Fallback caso venha direto
+                video_url = dados
 
-            # --- PASSO 5: BANCO DE DADOS ---
-            log_status("💾 [PASSO 5/5] Salvando HTML e finalizando no Banco de Dados...")
+            log_status(f"🎥 Vídeo extraído: {video_url}")
+
+            # --- SALVAR ---
             html_video = f"""
             <div class='video-container-premium my-6'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
@@ -197,20 +206,16 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            
-            log_status(f"🏆 [SUCESSO TOTAL] Relatório {report_id} está pronto para o usuário!")
+            log_status(f"🏆 VITÓRIA! Report {report_id} concluído.")
 
         except Exception as e:
             error_msg = str(e)
-            log_status(f"💥 ERRO CAPTURADO: {error_msg}")
-            
-            # Atualiza o banco para o usuário não ficar em 'PROCESSING' para sempre
+            log_status(f"💥 ERRO: {error_msg}")
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
-                report.ai_response = f"<div class='bg-red-900/10 p-4 rounded-xl text-red-500'>⚠️ Erro no Vídeo: {error_msg}</div>" + report.ai_response
+                report.ai_response = f"<div class='text-red-500 bg-red-100 p-2 rounded'>Erro: {error_msg}</div>" + report.ai_response
                 db.session.commit()
-                log_status("📢 Status de ERRO salvo no banco de dados.")
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
 # --- [NOVO] LÓGICA DO TRIAL (14 DIAS) ---
