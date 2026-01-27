@@ -123,11 +123,10 @@ class Document(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id): return User.query.get(int(user_id))
-
 def worker_video_tutorial(app_obj, report_id, user_id):
     with app_obj.app_context():
         import datetime
-        import shutil # Para salvar o arquivo localmente
+        import shutil 
         
         def log_status(msg):
             timestamp = datetime.datetime.now().strftime("%H:%M:%S")
@@ -139,10 +138,9 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             import asyncio
             import os
 
-            # Pega o Token que você salvou nos Secrets
             HF_TOKEN = os.getenv("HF_TOKEN")
             
-            log_status(f"🚀 INICIANDO REPORT: {report_id} (Tentativa com Token)")
+            log_status(f"🚀 INICIANDO REPORT: {report_id} no mirror yuvraj108c")
             report = Report.query.get(report_id)
 
             # --- PASSO 1: ÁUDIO ---
@@ -151,57 +149,44 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], audio_filename)
             
             async def generate_voice():
-                texto = f"Olá! Analisei os dados de {report.tool_name} e preparei sua estratégia. Confira os detalhes abaixo."
+                texto = f"Olá! Sou o consultor da Rendey. Analisei os dados de {report.tool_name} e preparei sua estratégia."
                 communicate = edge_tts.Communicate(texto, "pt-BR-AntonioNeural")
                 await communicate.save(audio_path)
             
             asyncio.run(generate_voice())
-            log_status("✅ Áudio pronto.")
 
             # --- PASSO 2: CONEXÃO COM TOKEN ---
-            log_status("🔗 [2/3] Conectando ao manavisrani07 com Autenticação...")
-            
-            # Com o requirements atualizado, isso AQUI vai funcionar e evitar o 403
-            client = Client("manavisrani07/gradio-lipsync-wav2lip", hf_token=HF_TOKEN) 
+            log_status("🔗 [2/3] Conectando ao yuvraj108c com Token...")
+            client = Client("yuvraj108c/Wav2Lip", hf_token=HF_TOKEN) 
             
             foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
             
             log_status("📤 Enviando arquivos...")
             
-            # Usando os parâmetros exatos que descobrimos ontem
+            # Usando fn_index=0 para se adaptar ao novo mirror
             result = client.predict(
-                video=handle_file(foto_url),
-                audio=handle_file(audio_path),
-                checkpoint="wav2lip_gan",
-                no_smooth=0,
-                resize_factor=1,
-                pad_top=0, pad_bottom=0, pad_left=0,
-                api_name="/generate"
+                handle_file(foto_url),
+                handle_file(audio_path),
+                fn_index=0
             )
             
-            log_status("✅ Vídeo gerado na nuvem! Iniciando download...")
+            log_status("✅ Vídeo gerado! Baixando...")
 
-            # --- PASSO 3: SALVAR LOCALMENTE (Fim dos erros de acesso) ---
-            # O Gradio devolve um dicionário ou caminho temp
-            if isinstance(result, dict) and 'video' in result:
-                caminho_temp = result['video']
-            elif isinstance(result, (list, tuple)):
-                caminho_temp = result[0]
+            # --- PASSO 3: SALVAR ---
+            if isinstance(result, (list, tuple)):
+                caminho_temp = result[0] # Geralmente é o primeiro item da lista
+            elif isinstance(result, dict):
+                caminho_temp = result.get('video') or result.get('value')
             else:
                 caminho_temp = result
 
-            # Definimos onde o vídeo vai morar no SEU servidor
             video_filename = f"video_final_{report_id}.mp4"
             video_path_final = os.path.join(app_obj.config['UPLOAD_FOLDER'], video_filename)
 
-            # Movemos o arquivo da pasta temporária para a pasta do seu site
             shutil.move(caminho_temp, video_path_final)
             
-            # URL que o HTML vai usar (aponta para o seu próprio site)
             video_url_publica = f"/static/uploads/{video_filename}"
             
-            log_status(f"💾 Vídeo salvo em: {video_path_final}")
-
             html_video = f"""
             <div class='video-container-premium my-6'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
@@ -212,16 +197,11 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            log_status(f"🏆 SUCESSO! Vídeo pronto e salvo localmente.")
+            log_status(f"🏆 VITÓRIA! Vídeo salvo em {video_path_final}")
 
         except Exception as e:
             error_msg = str(e)
             log_status(f"💥 ERRO: {error_msg}")
-            
-            # Se der erro de biblioteca antiga, avisa no log
-            if "unexpected keyword" in error_msg:
-                log_status("❌ ALERTA: Você esqueceu de atualizar o requirements.txt!")
-                
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
