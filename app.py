@@ -124,13 +124,6 @@ class Document(db.Model):
 @login_manager.user_loader
 def load_user(user_id): return User.query.get(int(user_id))
 
-# --- 5. [REFATORADO] WORKER DE VÍDEO NÍVEL NOTEBOOKLM (GRÁTIS) ---
-Renan, entendi perfeitamente. Quando o processo é demorado, o "silêncio" no terminal é o que mais gera ansiedade. Vamos transformar esse Worker em uma "máquina de falar", registrando cada micro-passo para você saber exatamente onde o Python está "pensando".
-
-Aqui está o código com o log detalhado (passo a passo) para o mirror manavisrani07.
-
-🛠️ Código com Logs Detalhados (Worker 2.0)
-Python
 def worker_video_tutorial(app_obj, report_id, user_id):
     with app_obj.app_context():
         import datetime
