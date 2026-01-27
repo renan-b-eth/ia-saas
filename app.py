@@ -128,47 +128,41 @@ def load_user(user_id): return User.query.get(int(user_id))
 def worker_video_tutorial(app_obj, report_id, user_id):
     with app_obj.app_context():
         try:
-            import replicate
+            from gradio_client import Client, handle_file
             import edge_tts
             import asyncio
             import os
 
             report = Report.query.get(report_id)
-            print(f"🎙️ [PASSO 1/2] Gerando Áudio com Edge-TTS...", flush=True)
+            print(f"🎙️ [PASSO 1/2] Gerando Áudio...", flush=True)
 
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
-            
             async def generate_voice():
-                # Texto que o consultor vai falar
-                texto = f"Olá, sou o consultor da Rendey. Analisei seu relatório de {report.tool_name} e os detalhes estratégicos estão logo abaixo."
+                # Texto curto para testar rápido
+                texto = f"Olá! Analisei seu relatório de {report.tool_name}. Confira os detalhes abaixo."
                 communicate = edge_tts.Communicate(texto, "pt-BR-AntonioNeural")
                 await communicate.save(audio_path)
-            
             asyncio.run(generate_voice())
-            print("✅ Áudio gerado com sucesso!", flush=True)
 
-            # --- PASSO 2: REPLICATE (STABLE AVATAR - GARANTIDO) ---
-            print("🎥 [PASSO 2/2] Renderizando Avatar na Replicate...", flush=True)
+            # --- PASSO 2: WAV2LIP (O MODELO "IMORTAL" E GRÁTIS) ---
+            print("🎥 [PASSO 2/2] Sincronizando lábios via Wav2Lip...", flush=True)
             
-            # Buscamos o Token que você salvou nos Secrets do Hugging Face
-            os.environ["REPLICATE_API_TOKEN"] = os.getenv("REPLICATE_API_TOKEN")
+            # Este mirror costuma ser público e estável
+            client = Client("TencentGameMate/Wav2Lip") 
             
-            # Este modelo é público, estável e feito para Foto + Áudio
-            # Link para conferir: https://replicate.com/lucataco/stable-avatar
-            output = replicate.run(
-                "lucataco/stable-avatar:4b3bd758c59166c12d9b46eee3565b9d67f2f4330909bf500a5c70ade3b46709",
-                input={
-                    "image": "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg",
-                    "audio": open(audio_path, "rb"),
-                    "fps": 24
-                }
+            foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
+            
+            # O Wav2Lip é simples: Foto + Áudio
+            result = client.predict(
+                video=handle_file(foto_url), # Ele aceita imagem no lugar de vídeo
+                audio=handle_file(audio_path),
+                api_name="/predict"
             )
             
-            # O output é o link direto do vídeo .mp4
-            video_url = output
-            print(f"✅ SUCESSO! Vídeo gerado: {video_url}", flush=True)
+            video_url = result
+            print(f"✅ VÍDEO GERADO: {video_url}", flush=True)
 
-            # --- FINALIZAÇÃO ---
+            # Salva o HTML no banco
             html_video = f"""
             <div class='video-container-premium'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
@@ -179,15 +173,14 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            print(f"🏆 VITÓRIA! Report {report_id} finalizado.")
 
         except Exception as e:
             error_msg = str(e)
-            print(f"❌ ERRO REPLICATE: {error_msg}", flush=True)
+            print(f"❌ ERRO NO GRATUITO: {error_msg}")
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
-                report.ai_response = f"<div class='p-4 bg-orange-900/20 border border-orange-500 rounded-xl text-orange-400 text-xs font-mono mb-4'>ERRO TÉCNICO: {error_msg}</div>" + report.ai_response
+                report.ai_response = f"<div class='text-red-500'>Erro no processamento: {error_msg}</div>" + report.ai_response
                 db.session.commit()
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
