@@ -125,46 +125,77 @@ class Document(db.Model):
 def load_user(user_id): return User.query.get(int(user_id))
 
 # --- 5. [REFATORADO] WORKER DE VÍDEO NÍVEL NOTEBOOKLM (GRÁTIS) ---
+Renan, entendi perfeitamente. Quando o processo é demorado, o "silêncio" no terminal é o que mais gera ansiedade. Vamos transformar esse Worker em uma "máquina de falar", registrando cada micro-passo para você saber exatamente onde o Python está "pensando".
+
+Aqui está o código com o log detalhado (passo a passo) para o mirror manavisrani07.
+
+🛠️ Código com Logs Detalhados (Worker 2.0)
+Python
 def worker_video_tutorial(app_obj, report_id, user_id):
     with app_obj.app_context():
+        import datetime
+        
+        def log_status(msg):
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+            print(f"[{timestamp}] 🛠️ [WORKER VIDEO] {msg}", flush=True)
+
         try:
             from gradio_client import Client, handle_file
             import edge_tts
             import asyncio
             import os
 
+            log_status(f"🚀 INICIANDO PROCESSO PARA O RELATÓRIO: {report_id}")
             report = Report.query.get(report_id)
-            print(f"🎙️ [PASSO 1/2] Gerando Áudio...", flush=True)
+            
+            if not report:
+                log_status("❌ ERRO CRÍTICO: Relatório não encontrado no banco de dados.")
+                return
 
-            audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
+            # --- PASSO 1: ÁUDIO ---
+            log_status("🎙️ [PASSO 1/5] Iniciando geração de voz (Edge-TTS)...")
+            audio_filename = f"v_{report_id}.mp3"
+            audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], audio_filename)
+            
             async def generate_voice():
-                # Texto curto para testar rápido
-                texto = f"Olá! Analisei seu relatório de {report.tool_name}. Confira os detalhes abaixo."
+                texto = f"Olá, sou o consultor da Rendey. Analisei seu relatório de {report.tool_name} e preparei as recomendações estratégicas."
                 communicate = edge_tts.Communicate(texto, "pt-BR-AntonioNeural")
                 await communicate.save(audio_path)
+            
             asyncio.run(generate_voice())
+            log_status(f"✅ [PASSO 1/5] Áudio gerado e salvo em: {audio_path}")
 
-            # --- PASSO 2: WAV2LIP (O MODELO "IMORTAL" E GRÁTIS) ---
-            print("🎥 [PASSO 2/2] Sincronizando lábios via Wav2Lip...", flush=True)
-            
-            # Este mirror costuma ser público e estável
-            client = Client("TencentGameMate/Wav2Lip") 
-            
+            # --- PASSO 2: CONEXÃO ---
+            log_status("🔗 [PASSO 2/5] Tentando conexão com o Mirror manavisrani07...")
+            client = Client("manavisrani07/gradio-lipsync-wav2lip") 
+            log_status("✅ [PASSO 2/5] Conexão com Hugging Face estabelecida com sucesso.")
+
+            # --- PASSO 3: ENVIANDO DADOS ---
+            log_status("📤 [PASSO 3/5] Enviando Foto e Áudio para a GPU externa...")
             foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
             
-            # O Wav2Lip é simples: Foto + Áudio
+            log_status(f"📸 Foto de origem: {foto_url}")
+            log_status("⏳ Aguardando processamento da IA (Isso pode levar de 30 a 120 segundos)...")
+            
+            # Aqui é onde o Python "trava" enquanto a GPU trabalha
             result = client.predict(
-                video=handle_file(foto_url), # Ele aceita imagem no lugar de vídeo
-                audio=handle_file(audio_path),
+                handle_file(foto_url),      # Imagem
+                handle_file(audio_path),     # Áudio
+                "wav2lip_gan",               # Modelo
+                1,                           # Resize factor
                 api_name="/predict"
             )
-            
-            video_url = result
-            print(f"✅ VÍDEO GERADO: {video_url}", flush=True)
+            log_status("✅ [PASSO 3/5] Processamento concluído! Resposta recebida da API.")
 
-            # Salva o HTML no banco
+            # --- PASSO 4: DOWNLOAD DO RESULTADO ---
+            log_status("📥 [PASSO 4/5] Extraindo URL do vídeo gerado...")
+            video_url = result
+            log_status(f"🎥 Link do vídeo temporário: {video_url}")
+
+            # --- PASSO 5: BANCO DE DADOS ---
+            log_status("💾 [PASSO 5/5] Salvando HTML e finalizando no Banco de Dados...")
             html_video = f"""
-            <div class='video-container-premium'>
+            <div class='video-container-premium my-6'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
                     <source src='{video_url}' type='video/mp4'>
                 </video>
@@ -173,15 +204,20 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
+            
+            log_status(f"🏆 [SUCESSO TOTAL] Relatório {report_id} está pronto para o usuário!")
 
         except Exception as e:
             error_msg = str(e)
-            print(f"❌ ERRO NO GRATUITO: {error_msg}")
+            log_status(f"💥 ERRO CAPTURADO: {error_msg}")
+            
+            # Atualiza o banco para o usuário não ficar em 'PROCESSING' para sempre
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
-                report.ai_response = f"<div class='text-red-500'>Erro no processamento: {error_msg}</div>" + report.ai_response
+                report.ai_response = f"<div class='bg-red-900/10 p-4 rounded-xl text-red-500'>⚠️ Erro no Vídeo: {error_msg}</div>" + report.ai_response
                 db.session.commit()
+                log_status("📢 Status de ERRO salvo no banco de dados.")
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
 # --- [NOVO] LÓGICA DO TRIAL (14 DIAS) ---
