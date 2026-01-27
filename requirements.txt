@@ -1,6 +1,6 @@
 flask
-flask_sqlalchemy
-flask_login
+flask-sqlalchemy
+flask-login
 openai
 apify-client
 gunicorn
@@ -22,21 +22,9 @@ imageio-ffmpeg
 langchain
 langchain-community
 faiss-cpu
-pypdf
 stripe
 Flask-Mail
 requests
-Flask
-Flask-SQLAlchemy
-psycopg2-binary # ou psycopg2
-Flask-Login
-Flask-Mail
-openai # Para a voz TTS
-moviepy # Para o vídeo
-Werkzeug
 python-dotenv
-apify-client
-sentence-transformers # Se você usa RAG com o all-MiniLM-L6-v2
-gradio_client>=1.0.0
-edge-tts
+gradio_client==1.3.0
 replicate
