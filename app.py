@@ -128,48 +128,47 @@ def load_user(user_id): return User.query.get(int(user_id))
 def worker_video_tutorial(app_obj, report_id, user_id):
     with app_obj.app_context():
         try:
-            import replicate # Certifique-se de ter 'replicate' no seu requirements.txt
+            import replicate
             import edge_tts
             import asyncio
             import os
 
             report = Report.query.get(report_id)
-            print(f"🎙️ [PASSO 1/2] Gerando Áudio...", flush=True)
+            print(f"🎙️ [PASSO 1/2] Gerando Áudio com Edge-TTS...", flush=True)
 
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
             
             async def generate_voice():
-                # O texto da análise que o consultor vai falar
-                texto = f"Olá! Sua análise de {report.tool_name} está pronta. Confira os detalhes estratégicos abaixo."
+                # Texto que o consultor vai falar
+                texto = f"Olá, sou o consultor da Rendey. Analisei seu relatório de {report.tool_name} e os detalhes estratégicos estão logo abaixo."
                 communicate = edge_tts.Communicate(texto, "pt-BR-AntonioNeural")
                 await communicate.save(audio_path)
             
             asyncio.run(generate_voice())
-            print("✅ Áudio gerado!", flush=True)
+            print("✅ Áudio gerado com sucesso!", flush=True)
 
-            # --- PASSO 2: REPLICATE (ESTABILIDADE TOTAL) ---
-            print("🎥 [PASSO 2/2] Renderizando na Replicate...", flush=True)
+            # --- PASSO 2: REPLICATE (STABLE AVATAR - GARANTIDO) ---
+            print("🎥 [PASSO 2/2] Renderizando Avatar na Replicate...", flush=True)
             
-            # O Hugging Face injeta o Secret automaticamente no seu ambiente
+            # Buscamos o Token que você salvou nos Secrets do Hugging Face
             os.environ["REPLICATE_API_TOKEN"] = os.getenv("REPLICATE_API_TOKEN")
             
-            # Usando o modelo LivePortrait oficial na Replicate
-            # Este modelo é pago por uso, mas você tem créditos grátis no início
+            # Este modelo é público, estável e feito para Foto + Áudio
+            # Link para conferir: https://replicate.com/lucataco/stable-avatar
             output = replicate.run(
-                "kjvibe/live-portrait:368f5160867a531f9f21f1d188734f41a877995e6f3b018b10892224d08a5436",
+                "lucataco/stable-avatar:4b3bd758c59166c12d9b46eee3565b9d67f2f4330909bf500a5c70ade3b46709",
                 input={
-                    "source_image": "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg",
-                    "driving_audio": open(audio_path, "rb"),
-                    "video_frame_load_skip": 1,
-                    "lip_normalization": True
+                    "image": "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg",
+                    "audio": open(audio_path, "rb"),
+                    "fps": 24
                 }
             )
             
-            # A Replicate retorna o link direto do vídeo pronto
-            video_url = output 
-            print(f"✅ VÍDEO PRONTO: {video_url}", flush=True)
+            # O output é o link direto do vídeo .mp4
+            video_url = output
+            print(f"✅ SUCESSO! Vídeo gerado: {video_url}", flush=True)
 
-            # Salva no banco de dados para aparecer no seu front-end
+            # --- FINALIZAÇÃO ---
             html_video = f"""
             <div class='video-container-premium'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
@@ -180,7 +179,7 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            print(f"🏆 VITÓRIA FINAL: Report {report_id} concluído!")
+            print(f"🏆 VITÓRIA! Report {report_id} finalizado.")
 
         except Exception as e:
             error_msg = str(e)
@@ -188,7 +187,7 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
-                report.ai_response = f"<div class='p-4 bg-orange-900/20 border border-orange-500 rounded-xl text-orange-400 text-xs font-mono mb-4'>AVISO TÉCNICO: {error_msg}</div>" + report.ai_response
+                report.ai_response = f"<div class='p-4 bg-orange-900/20 border border-orange-500 rounded-xl text-orange-400 text-xs font-mono mb-4'>ERRO TÉCNICO: {error_msg}</div>" + report.ai_response
                 db.session.commit()
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
