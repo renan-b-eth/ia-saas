@@ -104,6 +104,10 @@ class User(UserMixin, db.Model):
     warnings = db.Column(db.Integer, default=0)
     ban_until = db.Column(db.DateTime, nullable=True)
 
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 class Report(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
