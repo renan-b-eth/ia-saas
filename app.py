@@ -127,10 +127,11 @@ def load_user(user_id): return User.query.get(int(user_id))
 def worker_video_tutorial(app_obj, report_id, user_id):
     with app_obj.app_context():
         import datetime
+        import shutil # Para salvar o arquivo localmente
         
         def log_status(msg):
             timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-            print(f"[{timestamp}] 🛠️ [WORKER VIDEO] {msg}", flush=True)
+            print(f"[{timestamp}] 🛠️ [WORKER] {msg}", flush=True)
 
         try:
             from gradio_client import Client, handle_file
@@ -138,35 +139,36 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             import asyncio
             import os
 
-            # Pegamos o seu Token dos Segredos do Hugging Face
+            # Pega o Token que você salvou nos Secrets
             HF_TOKEN = os.getenv("HF_TOKEN")
             
-            log_status(f"🚀 INICIANDO com Autenticação (Token)...")
+            log_status(f"🚀 INICIANDO REPORT: {report_id} (Tentativa com Token)")
             report = Report.query.get(report_id)
 
             # --- PASSO 1: ÁUDIO ---
-            log_status("🎙️ [PASSO 1/3] Gerando voz...")
-            audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
+            log_status("🎙️ [1/3] Gerando voz...")
+            audio_filename = f"audio_{report_id}.mp3"
+            audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], audio_filename)
             
             async def generate_voice():
-                texto = f"Olá! Sou o consultor da Rendey. Analisei os dados de {report.tool_name} e preparei sua estratégia."
+                texto = f"Olá! Analisei os dados de {report.tool_name} e preparei sua estratégia. Confira os detalhes abaixo."
                 communicate = edge_tts.Communicate(texto, "pt-BR-AntonioNeural")
                 await communicate.save(audio_path)
             
             asyncio.run(generate_voice())
+            log_status("✅ Áudio pronto.")
 
-            # --- PASSO 2: CONEXÃO COM TOKEN (O PULO DO GATO) ---
-            # Usamos o manavisrani07 que você achou, mas agora PASSAMOS O TOKEN
-            log_status(f"🔗 [PASSO 2/3] Autenticando no manavisrani07...")
+            # --- PASSO 2: CONEXÃO COM TOKEN ---
+            log_status("🔗 [2/3] Conectando ao manavisrani07 com Autenticação...")
             
-            # Ao passar hf_token, evitamos o bloqueio de 'Anônimo'
+            # Com o requirements atualizado, isso AQUI vai funcionar e evitar o 403
             client = Client("manavisrani07/gradio-lipsync-wav2lip", hf_token=HF_TOKEN) 
             
             foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
             
-            log_status("📤 Enviando arquivos como Usuário Autenticado...")
+            log_status("📤 Enviando arquivos...")
             
-            # Usando os parâmetros que descobrimos no log
+            # Usando os parâmetros exatos que descobrimos ontem
             result = client.predict(
                 video=handle_file(foto_url),
                 audio=handle_file(audio_path),
@@ -177,41 +179,48 @@ def worker_video_tutorial(app_obj, report_id, user_id):
                 api_name="/generate"
             )
             
-            log_status("✅ Resposta recebida! Tentando baixar...")
+            log_status("✅ Vídeo gerado na nuvem! Iniciando download...")
 
-            # --- PASSO 3: TRATAR RETORNO ---
-            # Se vier Dicionário, extraímos o vídeo
-            if isinstance(result, (list, tuple)):
-                dados = result[0]
+            # --- PASSO 3: SALVAR LOCALMENTE (Fim dos erros de acesso) ---
+            # O Gradio devolve um dicionário ou caminho temp
+            if isinstance(result, dict) and 'video' in result:
+                caminho_temp = result['video']
+            elif isinstance(result, (list, tuple)):
+                caminho_temp = result[0]
             else:
-                dados = result
-                
-            if isinstance(dados, dict) and 'video' in dados:
-                video_url = dados['video']
-            else:
-                video_url = dados
+                caminho_temp = result
 
-            log_status(f"🎥 Vídeo Liberado: {video_url}")
+            # Definimos onde o vídeo vai morar no SEU servidor
+            video_filename = f"video_final_{report_id}.mp4"
+            video_path_final = os.path.join(app_obj.config['UPLOAD_FOLDER'], video_filename)
+
+            # Movemos o arquivo da pasta temporária para a pasta do seu site
+            shutil.move(caminho_temp, video_path_final)
+            
+            # URL que o HTML vai usar (aponta para o seu próprio site)
+            video_url_publica = f"/static/uploads/{video_filename}"
+            
+            log_status(f"💾 Vídeo salvo em: {video_path_final}")
 
             html_video = f"""
             <div class='video-container-premium my-6'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
-                    <source src='{video_url}' type='video/mp4'>
+                    <source src='{video_url_publica}' type='video/mp4'>
                 </video>
             </div>
             """
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            log_status(f"🏆 VITÓRIA! Report {report_id} concluído.")
+            log_status(f"🏆 SUCESSO! Vídeo pronto e salvo localmente.")
 
         except Exception as e:
             error_msg = str(e)
             log_status(f"💥 ERRO: {error_msg}")
             
-            # Se der 403 mesmo com token, o servidor bloqueou TUDO.
-            if "403" in error_msg:
-                log_status("❌ O Token não funcionou. O servidor bloqueou API externa.")
+            # Se der erro de biblioteca antiga, avisa no log
+            if "unexpected keyword" in error_msg:
+                log_status("❌ ALERTA: Você esqueceu de atualizar o requirements.txt!")
                 
             report = Report.query.get(report_id)
             if report:
