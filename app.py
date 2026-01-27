@@ -128,47 +128,48 @@ def load_user(user_id): return User.query.get(int(user_id))
 def worker_video_tutorial(app_obj, report_id, user_id):
     with app_obj.app_context():
         try:
-            from gradio_client import Client, handle_file
+            import replicate # Certifique-se de ter 'replicate' no seu requirements.txt
             import edge_tts
             import asyncio
             import os
-            import requests
 
             report = Report.query.get(report_id)
-            print(f"🎙️ [PASSO 1/3] Gerando Áudio com Edge-TTS...", flush=True)
+            print(f"🎙️ [PASSO 1/2] Gerando Áudio...", flush=True)
 
-            roteiro = f"Olá, sou o consultor da Rendey. Analisei seu relatório de {report.tool_name} e os detalhes estratégicos estão logo abaixo."
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
-
+            
             async def generate_voice():
-                communicate = edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural")
+                # O texto da análise que o consultor vai falar
+                texto = f"Olá! Sua análise de {report.tool_name} está pronta. Confira os detalhes estratégicos abaixo."
+                communicate = edge_tts.Communicate(texto, "pt-BR-AntonioNeural")
                 await communicate.save(audio_path)
-
+            
             asyncio.run(generate_voice())
-            print("✅ Áudio gerado com sucesso!", flush=True)
+            print("✅ Áudio gerado!", flush=True)
 
-            # --- PASSO 2: GPU NVIDIA (InnoAI - SEM NOMES, SÓ ID) ---
-            print("🎥 [PASSO 2/3] Renderizando Avatar via InnoAI...", flush=True)
+            # --- PASSO 2: REPLICATE (ESTABILIDADE TOTAL) ---
+            print("🎥 [PASSO 2/2] Renderizando na Replicate...", flush=True)
             
-            hf_token = os.getenv("HF_TOKEN")
-            client_gpu = Client("InnoAI/LivePortrait", token=hf_token) 
+            # O Hugging Face injeta o Secret automaticamente no seu ambiente
+            os.environ["REPLICATE_API_TOKEN"] = os.getenv("REPLICATE_API_TOKEN")
             
-            foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
-            
-            # MUDANÇA MATADORA: Usamos fn_index=0 para ignorar o erro de múltiplos endpoints
-            result = client_gpu.predict(
-                handle_file(foto_url),   # Foto
-                handle_file(audio_path),  # Áudio
-                True,                     # flag_relative
-                True,                     # flag_do_crop
-                True,                     # flag_remap
-                fn_index=0                # <--- ISSO MATA O ERRO DA IMAGE_A049B5
+            # Usando o modelo LivePortrait oficial na Replicate
+            # Este modelo é pago por uso, mas você tem créditos grátis no início
+            output = replicate.run(
+                "kjvibe/live-portrait:368f5160867a531f9f21f1d188734f41a877995e6f3b018b10892224d08a5436",
+                input={
+                    "source_image": "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg",
+                    "driving_audio": open(audio_path, "rb"),
+                    "video_frame_load_skip": 1,
+                    "lip_normalization": True
+                }
             )
             
-            video_url = result[0] if isinstance(result, (list, tuple)) else result
-            print(f"✅ VÍDEO GERADO! {video_url}", flush=True)
+            # A Replicate retorna o link direto do vídeo pronto
+            video_url = output 
+            print(f"✅ VÍDEO PRONTO: {video_url}", flush=True)
 
-            # --- PASSO 3: FINALIZAÇÃO ---
+            # Salva no banco de dados para aparecer no seu front-end
             html_video = f"""
             <div class='video-container-premium'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
@@ -179,15 +180,15 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             report.ai_response += html_video
             report.status = "COMPLETED"
             db.session.commit()
-            print(f"🏆 [VITÓRIA] Relatório {report_id} finalizado!")
+            print(f"🏆 VITÓRIA FINAL: Report {report_id} concluído!")
 
         except Exception as e:
             error_msg = str(e)
-            print(f"❌ ERRO FINAL: {error_msg}", flush=True)
+            print(f"❌ ERRO REPLICATE: {error_msg}", flush=True)
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
-                report.ai_response = f"<div class='p-4 bg-red-900/20 border border-red-500 rounded-xl text-red-400 text-xs font-mono mb-4'>ERRO: {error_msg}</div>" + report.ai_response
+                report.ai_response = f"<div class='p-4 bg-orange-900/20 border border-orange-500 rounded-xl text-orange-400 text-xs font-mono mb-4'>AVISO TÉCNICO: {error_msg}</div>" + report.ai_response
                 db.session.commit()
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
