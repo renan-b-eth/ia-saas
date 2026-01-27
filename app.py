@@ -138,7 +138,10 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             import asyncio
             import os
 
-            log_status(f"🚀 INICIANDO REPORT: {report_id} com parâmetros exatos")
+            # Pegamos o seu Token dos Segredos do Hugging Face
+            HF_TOKEN = os.getenv("HF_TOKEN")
+            
+            log_status(f"🚀 INICIANDO com Autenticação (Token)...")
             report = Report.query.get(report_id)
 
             # --- PASSO 1: ÁUDIO ---
@@ -146,56 +149,50 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"v_{report_id}.mp3")
             
             async def generate_voice():
-                texto = f"Olá! Sou o consultor da Rendey. Analisei os dados de {report.tool_name} e aqui está a estratégia."
+                texto = f"Olá! Sou o consultor da Rendey. Analisei os dados de {report.tool_name} e preparei sua estratégia."
                 communicate = edge_tts.Communicate(texto, "pt-BR-AntonioNeural")
                 await communicate.save(audio_path)
             
             asyncio.run(generate_voice())
-            log_status("✅ Áudio pronto.")
 
-            # --- PASSO 2: GPU (Mapeada pelo seu Log) ---
-            log_status("🔗 [PASSO 2/3] Conectando ao manavisrani07 com api_name='/generate'...")
-            client = Client("manavisrani07/gradio-lipsync-wav2lip") 
+            # --- PASSO 2: CONEXÃO COM TOKEN (O PULO DO GATO) ---
+            # Usamos o manavisrani07 que você achou, mas agora PASSAMOS O TOKEN
+            log_status(f"🔗 [PASSO 2/3] Autenticando no manavisrani07...")
+            
+            # Ao passar hf_token, evitamos o bloqueio de 'Anônimo'
+            client = Client("manavisrani07/gradio-lipsync-wav2lip", hf_token=HF_TOKEN) 
             
             foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
             
-            log_status("📤 Enviando parâmetros exatos do log...")
+            log_status("📤 Enviando arquivos como Usuário Autenticado...")
             
-            # AQUI ESTÁ A CORREÇÃO BASEADA NO SEU LOG:
+            # Usando os parâmetros que descobrimos no log
             result = client.predict(
-                video=handle_file(foto_url),      # Param 1: video (Required)
-                audio=handle_file(audio_path),    # Param 2: audio (Required)
-                checkpoint="wav2lip_gan",         # Param 3: checkpoint (Literal required)
-                no_smooth=0,                      # Param 4: no_smooth (Default 0)
-                resize_factor=1,                  # Param 5: resize_factor (Default 10, usamos 1 para menos zoom)
-                pad_top=0,                        # Param 6: pad_top
-                pad_bottom=0,                     # Param 7: pad_bottom
-                pad_left=1,                       # Param 8: pad_left
-                api_name="/generate"              # <--- O NOME CORRETO QUE VOCÊ ACHOU
+                video=handle_file(foto_url),
+                audio=handle_file(audio_path),
+                checkpoint="wav2lip_gan",
+                no_smooth=0,
+                resize_factor=1,
+                pad_top=0, pad_bottom=0, pad_left=0,
+                api_name="/generate"
             )
             
-            log_status("✅ Resposta recebida da API!")
+            log_status("✅ Resposta recebida! Tentando baixar...")
 
-            # --- PASSO 3: TRATAR O RETORNO ---
-            # O log diz: Returns [Video] value_18: Dict(video: filepath, subtitles: ...)
-            # Então o resultado não é uma string direta, é um dicionário ou tupla.
-            
+            # --- PASSO 3: TRATAR RETORNO ---
+            # Se vier Dicionário, extraímos o vídeo
             if isinstance(result, (list, tuple)):
-                # Às vezes vem numa lista [Dict]
                 dados = result[0]
             else:
                 dados = result
                 
-            # Extraindo o caminho do vídeo de dentro do dicionário
             if isinstance(dados, dict) and 'video' in dados:
                 video_url = dados['video']
             else:
-                # Fallback caso venha direto
                 video_url = dados
 
-            log_status(f"🎥 Vídeo extraído: {video_url}")
+            log_status(f"🎥 Vídeo Liberado: {video_url}")
 
-            # --- SALVAR ---
             html_video = f"""
             <div class='video-container-premium my-6'>
                 <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
@@ -211,10 +208,15 @@ def worker_video_tutorial(app_obj, report_id, user_id):
         except Exception as e:
             error_msg = str(e)
             log_status(f"💥 ERRO: {error_msg}")
+            
+            # Se der 403 mesmo com token, o servidor bloqueou TUDO.
+            if "403" in error_msg:
+                log_status("❌ O Token não funcionou. O servidor bloqueou API externa.")
+                
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
-                report.ai_response = f"<div class='text-red-500 bg-red-100 p-2 rounded'>Erro: {error_msg}</div>" + report.ai_response
+                report.ai_response = f"<div class='text-red-500'>Erro: {error_msg}</div>" + report.ai_response
                 db.session.commit()
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
