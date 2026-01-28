@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-screen bg-[#050505] text-white py-20 px-4">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-black mb-10 flex items-center gap-4">
+            <span class="p-3 bg-white/5 rounded-2xl"><i class="fas fa-file-contract text-blue-500"></i></span>
+            Legal Terms & Policies
+        </h1>
+
+        <div class="space-y-12 text-gray-400 leading-relaxed">
+            
+            <section>
+                <h2 class="text-xl font-bold text-white mb-4 uppercase tracking-wider">1. Rendey LLC (New Mexico, USA)</h2>
+                <p>
+                    A Rendey LLC é uma entidade americana regida pelas leis do estado do Novo México. Ao utilizar nosso software, você concorda com a jurisdição dos tribunais competentes desta localidade para qualquer disputa legal.
+                </p>
+            </section>
+
+            <section class="p-8 bg-blue-900/10 border border-blue-500/20 rounded-3xl">
+                <h2 class="text-xl font-bold text-white mb-4 uppercase tracking-wider">2. Política de Reembolso (Refund Policy)</h2>
+                <p class="mb-4">
+                    Como fornecemos acesso imediato a recursos de computação de alto custo (NVIDIA H100) e geração de conteúdo via IA (créditos de processamento), nossa política de reembolso funciona da seguinte forma:
+                </p>
+                <ul class="list-disc pl-6 space-y-2">
+                    <li><strong>Período de Teste:</strong> Oferecemos 14 dias de Trial gratuito para teste de todas as funções.</li>
+                    <li><strong>Assinaturas:</strong> Uma vez que o pagamento via Stripe é processado após o trial, não haverá reembolso proporcional por meses parcialmente utilizados.</li>
+                    <li><strong>Cancelamento:</strong> Você pode cancelar sua assinatura a qualquer momento através do Portal do Cliente, e o acesso será mantido até o fim do ciclo de faturamento atual.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-white mb-4 uppercase tracking-wider">3. Segurança de Dados Stripe</h2>
+                <p>
+                    Todos os pagamentos são processados via <strong>Stripe Inc.</strong>. A Rendey LLC não armazena dados de cartão de crédito em seus servidores. Sua transação é protegida por criptografia de nível bancário AES-256.
+                </p>
+            </section>
+
+            <section class="text-center pt-10 border-t border-white/10">
+                <p class="text-xs font-mono">
+                    Rendey LLC - 2024. Albuquerque, NM | Boise, ID. <br>
+                    contact@rendey.store
+                </p>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

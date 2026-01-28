@@ -70,6 +70,16 @@ app.config['MAIL_PASSWORD'] = '@@Dolarizandose2026'
 app.config['MAIL_DEFAULT_SENDER'] = 'contact@rendey.store'
 mail = Mail(app)
 
+@app.errorhandler(404)
+def page_not_found(e):
+    # Retorna o template 404 e o código de status 404
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    # Opcional: Você pode usar a mesma página ou criar uma 500.html para erros de servidor
+    return render_template('404.html'), 500
+
 @app.route('/download_video/<path:filename>')
 @login_required
 def download_video_route(filename):
@@ -733,6 +743,19 @@ def register():
         else:
             flash("Email já cadastrado", "warning")
     return render_template('register.html')
+
+@app.route('/policies')
+def policies():
+    return render_template('policies.html')
+
+@app.route('/support')
+@login_required
+def support():
+    """
+    Rota para o Centro de Treinamento e Suporte da Rendey.
+    Explica como usar os agentes e oferece suporte personalizado.
+    """
+    return render_template('support.html')
 
 @app.route('/dashboard')
 @login_required
