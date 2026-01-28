@@ -1,37 +1,239 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="relative min-h-screen flex flex-col items-center justify-center pt-20 overflow-hidden">
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full"></div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 
-    <div class="relative z-10 text-center px-6">
-        <h1 class="text-[clamp(3.5rem,12vw,9rem)] font-[900] leading-[0.8] tracking-[-0.06em] mb-10 animate__animated animate__fadeInUp">
-            THE <br> <span class="text-edge">FUTURE</span> <br> OF RETAIL.
-        </h1>
+<style>
+    :root {
+        --brand-blue: #2563eb;
+        --brand-purple: #7c3aed;
+        --bg-dark: #050505;
+    }
+    .text-gradient {
+        background: linear-gradient(to right, #60a5fa, #a78bfa, #f472b6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .glass-card {
+        background: rgba(255, 255, 255, 0.02);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--brand-blue);
+        transform: translateY(-5px);
+    }
+    .btn-primary {
+        background: linear-gradient(to right, var(--brand-blue), var(--brand-purple));
+        box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+    }
+    .grid-bg {
+        background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
+        background-size: 40px 40px;
+    }
+</style>
+
+<div class="bg-[#050505] text-white font-sans selection:bg-blue-500/30 grid-bg">
+    
+    <section class="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-20 px-6 overflow-hidden">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-blue-600/10 blur-[120px] rounded-full"></div>
         
-        <p class="text-gray-500 text-lg md:text-xl font-medium max-w-xl mx-auto mb-12 animate__animated animate__fadeInUp animate__delay-1s">
-            Consultoria de Inteligência Artificial em escala industrial. Transforme dados em vídeos, roteiros e lucro real.
-        </p>
+        <div class="max-w-6xl mx-auto text-center relative z-10">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8 animate__animated animate__fadeInDown">
+                <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Desenvolvido por Rendey LLC • Sediada nos EUA 🇺🇸</span>
+            </div>
+            
+            <h1 class="text-5xl md:text-[90px] font-[900] leading-[0.9] tracking-[-0.05em] mb-8">
+                O Cérebro Digital do seu <br> 
+                <span class="text-gradient">Varejo Lucrativo.</span>
+            </h1>
 
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-6 animate__animated animate__fadeInUp animate__delay-1s">
-            <a href="/register" class="px-12 py-5 bg-white text-black font-black text-xl rounded-2xl hover:bg-blue-600 hover:text-white transition-all transform hover:scale-105">
-                START NOW
-            </a>
-            <div class="flex items-center gap-3">
-                <span class="w-10 h-[1px] bg-gray-800"></span>
-                <span class="text-[10px] font-black uppercase tracking-widest text-gray-600 italic">NVIDIA H100 POWERED</span>
+            <p class="text-lg md:text-2xl text-gray-400 max-w-3xl mx-auto mb-12 leading-relaxed font-medium">
+                A Rendey utiliza o poder da computação NVIDIA H100 para automatizar o marketing, auditar prejuízos e escalar sua loja no piloto automático.
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+                <a href="/register" class="btn-primary w-full sm:w-auto px-12 py-6 rounded-2xl text-xl font-black transition-all hover:scale-105 active:scale-95">
+                    TESTAR GRÁTIS POR 14 DIAS
+                </a>
+                <a href="#precos" class="w-full sm:w-auto px-12 py-6 bg-white/5 border border-white/10 rounded-2xl text-xl font-bold hover:bg-white/10 transition-all">
+                    VER PLANOS
+                </a>
+            </div>
+
+            <div class="mt-24 pt-10 border-t border-white/5 opacity-40 grayscale flex flex-wrap justify-center gap-12 text-sm font-black tracking-widest uppercase">
+                <span>Nvidia Powered</span>
+                <span>Stripe Verified</span>
+                <span>Delaware LLC</span>
+                <span>Llama 3.1 Architecture</span>
             </div>
         </div>
-    </div>
+    </section>
+
+    <section id="recursos" class="py-32 px-6 max-w-7xl mx-auto">
+        <div class="text-center mb-20" data-aos="fade-up">
+            <h2 class="text-4xl md:text-6xl font-black tracking-tighter mb-4">A Única IA que Entende o <br><span class="text-blue-500">Chão de Loja.</span></h2>
+            <p class="text-gray-500 text-xl">Processamento industrial de dados para o pequeno e médio varejista.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div class="md:col-span-8 glass-card p-12 rounded-[3rem] relative overflow-hidden group" data-aos="fade-right">
+                <div class="relative z-10">
+                    <div class="w-14 h-14 bg-blue-600/20 rounded-2xl flex items-center justify-center mb-8">
+                        <i data-lucide="video" class="text-blue-500"></i>
+                    </div>
+                    <h3 class="text-4xl font-black mb-4">Vídeos Virais em Segundos</h3>
+                    <p class="text-gray-400 text-lg max-w-md">Nossa IA cria o roteiro, faz a locução com voz neural e gera o vídeo pronto para Reels e TikTok. Esqueça editores caros.</p>
+                </div>
+                <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-blue-600/10 rounded-full blur-[80px] group-hover:bg-blue-600/20 transition-all"></div>
+            </div>
+
+            <div class="md:col-span-4 glass-card p-12 rounded-[3rem] border-blue-500/20" data-aos="fade-left">
+                <div class="w-14 h-14 bg-green-600/20 rounded-2xl flex items-center justify-center mb-8">
+                    <i data-lucide="trending-up" class="text-green-500"></i>
+                </div>
+                <h3 class="text-3xl font-black mb-4">Auditoria de Lucro</h3>
+                <p class="text-gray-500">Analisamos seus reviews e dados de mercado para encontrar onde você está perdendo dinheiro agora.</p>
+            </div>
+
+            <div class="md:col-span-4 glass-card p-12 rounded-[3rem]" data-aos="fade-up">
+                <div class="w-14 h-14 bg-purple-600/20 rounded-2xl flex items-center justify-center mb-8">
+                    <i data-lucide="brain" class="text-purple-500"></i>
+                </div>
+                <h3 class="text-3xl font-black mb-4">Memória Infinita</h3>
+                <p class="text-gray-500">Suba PDFs e cardápios. A Rendey aprende tudo sobre sua empresa e responde como um consultor sênior.</p>
+            </div>
+
+            <div class="md:col-span-8 glass-card p-12 rounded-[3rem] bg-gradient-to-br from-gray-900 to-black" data-aos="fade-up" data-aos-delay="100">
+                <div class="flex flex-col md:flex-row items-center gap-10">
+                    <div class="flex-1">
+                        <div class="w-14 h-14 bg-orange-600/20 rounded-2xl flex items-center justify-center mb-8">
+                            <i data-lucide="camera" class="text-orange-500"></i>
+                        </div>
+                        <h3 class="text-4xl font-black mb-4">Scanner de Concorrência</h3>
+                        <p class="text-gray-400">Tire uma foto do produto na gôndola e nossa IA varre a internet para comparar seu preço com os grandes players.</p>
+                    </div>
+                    <div class="w-48 h-48 bg-white/5 rounded-3xl border border-white/10 flex items-center justify-center">
+                        <i data-lucide="scan-eye" class="w-20 h-20 text-blue-600 opacity-20"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-32 bg-white/[0.02] border-y border-white/5">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-3xl font-black text-center mb-16 uppercase tracking-widest text-gray-500">Resultados Reais</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="glass-card p-8 rounded-3xl italic">
+                    <p class="text-gray-300 mb-6">"A Rendey diminuiu meu custo com agência de marketing em 80%. Os vídeos de IA vendem mais que os amadores que eu contratava."</p>
+                    <div class="flex items-center gap-3 not-italic">
+                        <div class="w-10 h-10 bg-blue-600 rounded-full"></div>
+                        <div>
+                            <p class="font-bold text-sm text-white">Ricardo S.</p>
+                            <p class="text-[10px] text-gray-500">Dono de Rede de Óticas</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass-card p-8 rounded-3xl italic">
+                    <p class="text-gray-300 mb-6">"O scanner de preços me deu o poder de negociar com fornecedores que eu não tinha antes. Vale cada centavo."</p>
+                    <div class="flex items-center gap-3 not-italic">
+                        <div class="w-10 h-10 bg-purple-600 rounded-full"></div>
+                        <div>
+                            <p class="font-bold text-sm text-white">Marta L.</p>
+                            <p class="text-[10px] text-gray-500">Supermercado Líder</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass-card p-8 rounded-3xl italic">
+                    <p class="text-gray-300 mb-6">"Fazer um roteiro de promoção levava horas. Agora, digito uma frase e a IA me entrega tudo pronto em segundos."</p>
+                    <div class="flex items-center gap-3 not-italic">
+                        <div class="w-10 h-10 bg-green-600 rounded-full"></div>
+                        <div>
+                            <p class="font-bold text-sm text-white">João Pedro</p>
+                            <p class="text-[10px] text-gray-500">Pizzaria Premium</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="precos" class="py-32 px-6 max-w-7xl mx-auto">
+        <div class="text-center mb-20">
+            <h2 class="text-5xl font-black mb-4">Invista no <span class="text-blue-500">seu Sucesso.</span></h2>
+            <p class="text-gray-500 text-xl">Escolha o plano ideal para o tamanho da sua operação.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="glass-card p-10 rounded-[3rem] flex flex-col">
+                <h3 class="text-xl font-bold mb-2">Beta Explorer</h3>
+                <div class="text-4xl font-black mb-6">R$ 0 <span class="text-sm font-normal text-gray-500">/14 dias</span></div>
+                <ul class="space-y-4 mb-10 flex-1 text-gray-400 text-sm">
+                    <li><i data-lucide="check" class="w-4 h-4 inline mr-2 text-green-500"></i> Acesso a 5 Robôs Básicos</li>
+                    <li><i data-lucide="check" class="w-4 h-4 inline mr-2 text-green-500"></i> 1 Geração de Vídeo</li>
+                    <li><i data-lucide="check" class="w-4 h-4 inline mr-2 text-green-500"></i> 1 PDF na Memória</li>
+                </ul>
+                <a href="/register" class="w-full py-4 border border-white/10 rounded-2xl font-black text-center hover:bg-white/5 transition">COMEÇAR TRIAL</a>
+            </div>
+
+            <div class="bg-blue-600 p-1 rounded-[3rem] transform scale-105 shadow-2xl shadow-blue-600/20">
+                <div class="bg-[#0A0A0A] p-10 rounded-[2.9rem] h-full flex flex-col">
+                    <div class="bg-blue-600 text-[10px] font-black uppercase tracking-[0.2em] py-1 px-3 rounded-full self-start mb-4">MAIS POPULAR</div>
+                    <h3 class="text-2xl font-black mb-2">Enterprise Pro</h3>
+                    <div class="text-5xl font-black mb-6">R$ 97 <span class="text-sm font-normal text-gray-500">/mês</span></div>
+                    <ul class="space-y-4 mb-10 flex-1 text-gray-300">
+                        <li><i data-lucide="check" class="w-5 h-5 inline mr-2 text-blue-500"></i> <strong>Todos os 25+ Agentes IA</strong></li>
+                        <li><i data-lucide="check" class="w-5 h-5 inline mr-2 text-blue-500"></i> Vídeos Ilimitados</li>
+                        <li><i data-lucide="check" class="w-5 h-5 inline mr-2 text-blue-500"></i> Scanner de Preços Ilimitado</li>
+                        <li><i data-lucide="check" class="w-5 h-5 inline mr-2 text-blue-500"></i> Memória de Contexto Full</li>
+                        <li><i data-lucide="check" class="w-5 h-5 inline mr-2 text-blue-500"></i> Suporte VIP 24h WhatsApp</li>
+                    </ul>
+                    <a href="/register" class="btn-primary w-full py-5 rounded-2xl font-black text-center text-lg">ASSINAR AGORA</a>
+                </div>
+            </div>
+
+            <div class="glass-card p-10 rounded-[3rem] flex flex-col">
+                <h3 class="text-xl font-bold mb-2">Custom Agent</h3>
+                <div class="text-4xl font-black mb-6 text-gray-500">Sob Consulta</div>
+                <p class="text-gray-400 text-sm mb-10 flex-1">Desenvolvemos um robô de IA exclusivo para os processos específicos da sua empresa.</p>
+                <a href="https://wa.me/5511954957725" class="w-full py-4 border border-blue-500/30 text-blue-400 rounded-2xl font-black text-center hover:bg-blue-500/10 transition">FALAR COM ENGENHEIRO</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-32 px-6 max-w-4xl mx-auto">
+        <div class="glass-card p-12 rounded-[3rem] border-white/10">
+            <h2 class="text-4xl font-black mb-8 text-center">Ficou com alguma dúvida?</h2>
+            <form class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <input type="text" placeholder="Seu Nome" class="w-full bg-white/5 border border-white/10 p-5 rounded-2xl focus:border-blue-500 outline-none">
+                    <input type="email" placeholder="E-mail Corporativo" class="w-full bg-white/5 border border-white/10 p-5 rounded-2xl focus:border-blue-500 outline-none">
+                </div>
+                <textarea placeholder="Como podemos ajudar seu negócio?" class="w-full bg-white/5 border border-white/10 p-5 rounded-2xl focus:border-blue-500 outline-none h-32"></textarea>
+                <button class="w-full py-5 btn-primary rounded-2xl font-black text-lg">ENVIAR MENSAGEM</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="py-20 text-center opacity-60">
+        <div class="max-w-2xl mx-auto px-6">
+            <i data-lucide="shield-check" class="w-12 h-12 mx-auto mb-6 text-blue-500"></i>
+            <h3 class="text-xl font-bold mb-4 uppercase tracking-widest">Garantia Incondicional</h3>
+            <p class="text-sm">
+                Nossa infraestrutura é processada via Stripe USA. Oferecemos trial de 14 dias para que você sinta o poder da IA. Caso decida assinar, você conta com suporte global Rendey LLC. Cancelamento simples em 1 clique.
+            </p>
+        </div>
+    </section>
+
 </div>
 
-<section class="max-w-7xl mx-auto px-6 py-40 grid grid-cols-1 md:grid-cols-12 gap-6">
-    <div class="md:col-span-8 glass p-16 rounded-[3rem] flex flex-col justify-end min-h-[500px]">
-        <h3 class="text-5xl font-black tracking-tighter mb-4">Vídeo Viral IA</h3>
-        <p class="text-gray-500 text-xl max-w-sm">Roteiros estratégicos e vídeos renderizados em segundos.</p>
-    </div>
-    <div class="md:col-span-4 bg-blue-600 p-16 rounded-[3rem] flex flex-col justify-end">
-        <h3 class="text-6xl font-black mb-2 tracking-tighter text-white">97%</h3>
-        <p class="text-blue-100 font-bold uppercase text-xs tracking-widest">Efficiency Increase</p>
-    </div>
-</section>
+<script>
+    lucide.createIcons();
+    AOS.init({ duration: 1000, once: true });
+</script>
 {% endblock %}
