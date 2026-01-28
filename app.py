@@ -245,6 +245,7 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             # 3. Junta áudio e imagem
             final_clip = image_clip.set_audio(audio_clip)
             final_clip = final_clip.set_fps(24)
+            temp_audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"temp_audio_{report_id}.m4a")
 
             # 4. Renderiza (Preset ultrafast para não travar o servidor)
             final_clip.write_videofile(
@@ -252,7 +253,10 @@ def worker_video_tutorial(app_obj, report_id, user_id):
                 codec='libx264', 
                 audio_codec='aac', 
                 preset='ultrafast',
-                logger=None # Remove logs excessivos do ffmpeg
+                # O SEGREDO ESTÁ AQUI: Força o temp file a ir para a pasta permitida
+                temp_audiofile=temp_audio_path, 
+                remove_temp=True,
+                logger=None 
             )
 
             # --- PASSO 4: FINALIZAÇÃO ---
