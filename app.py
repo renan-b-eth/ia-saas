@@ -686,6 +686,15 @@ def home():
     
     # Se for um visitante novo ou deslogado, mostramos a Landing Page (Index)
     return render_template('index.html')
+@app.route('/')
+def index():
+    # Preços exatos conforme sua imagem de pricing
+    precos = {
+        'starter': 18.73,
+        'pro': 31.93,
+        'agency': 94.83
+    }
+    return render_template('index.html', precos=precos)
 
 # Opcional: Criar um redirecionamento caso ele digite /index manualmente
 @app.route('/index')
