@@ -749,37 +749,44 @@ def dashboard():
         access=lambda u, tool_min: user_can_access(current_user, tool_min)
     )
 
-#@app.route('/api/find_maps_link', methods=['POST'])
+@app.route('/api/find_maps_link', methods=['POST'])
 def find_maps_link():
+    # Import local para não travar o carregamento global do app
+    try:
+        from duckduckgo_search import DDGS
+    except ImportError:
+        return jsonify({'success': False, 'error': 'Biblioteca de busca não instalada.'})
+
     data = request.json
     empresa = data.get('empresa')
     cidade = data.get('cidade')
     
     if not empresa or not cidade:
-        return jsonify({'success': False, 'error': 'Preencha nome e cidade'}), 400
+        return jsonify({'success': False, 'error': 'Dados incompletos.'})
 
     try:
-        # Usando a biblioteca com timeout para não travar o servidor
+        # Busca direta focada no domínio do Maps
+        search_query = f"{empresa} {cidade} google maps"
+        
         with DDGS() as ddgs:
-            query = f"{empresa} {cidade} google maps"
-            # Filtramos apenas por links que contenham google.com/maps
-            results = ddgs.text(query, max_results=5)
+            # Diminuímos para max_results=3 para ser instantâneo
+            results = list(ddgs.text(search_query, max_results=3))
             
-            link_final = None
-            for r in results:
-                if 'google.com/maps' in r['href'] or 'goo.gl/maps' in r['href']:
-                    link_final = r['href']
-                    break
+            if results:
+                # Pegamos o primeiro resultado que pareça um link do Google
+                for r in results:
+                    href = r.get('href', '')
+                    if 'google.com/maps' in href or 'goo.gl/maps' in href or 'google.com.br/maps' in href:
+                        return jsonify({'success': True, 'link': href})
+                
+                # Se não achou link do maps mas achou a empresa, retorna o link que achou
+                return jsonify({'success': True, 'link': results[0]['href']})
             
-            if link_final:
-                return jsonify({'success': True, 'link': link_final})
-            else:
-                return jsonify({'success': False, 'error': 'Loja não encontrada no Maps. Tente o nome exato.'})
+        return jsonify({'success': False, 'error': 'Não encontramos o link. Digite manualmente.'})
 
     except Exception as e:
         print(f"Erro na busca: {e}")
-        return jsonify({'success': False, 'error': 'Serviço de busca temporariamente instável.'})
-
+        return jsonify({'success': False, 'error': 'O serviço de busca está instável. Tente novamente em instantes.'})
 @app.route('/tool/<tool_type>', methods=['GET', 'POST'])
 @login_required
 def use_tool(tool_type):
