@@ -657,7 +657,11 @@ def heavy_lifting_worker(app_obj, report_id, tool_type, user_input, file_path, u
 
 @app.route('/')
 def home(): 
-    return redirect('/dashboard')
+    # Se o cara já estiver logado, manda pro dashboard
+    if current_user.is_authenticated:
+        return redirect('/dashboard')
+    # Senão, mostra a landing page revolucionária
+    return render_template('index.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -737,6 +741,38 @@ def dashboard():
         ban_time=ban_seconds_left, # Variavel para o cronômetro JS
         access=lambda u, tool_min: user_can_access(current_user, tool_min)
     )
+
+# --- ROTA AUXILIAR: ENCONTRAR LINK DO MAPS ---
+@app.route('/api/find_maps_link', methods=['POST'])
+def find_maps_link():
+    from duckduckgo_search import DDGS
+    
+    data = request.json
+    empresa = data.get('empresa')
+    cidade = data.get('cidade')
+    
+    if not empresa or not cidade:
+        return jsonify({'error': 'Preencha nome e cidade'}), 400
+
+    try:
+        print(f"🔎 Buscando Maps para: {empresa} em {cidade}...")
+        
+        # Busca específica para encontrar links do Google Maps
+        query = f"site:google.com/maps/place {empresa} {cidade}"
+        
+        with DDGS() as ddgs:
+            # Pega o primeiro resultado
+            results = list(ddgs.text(query, max_results=1))
+            
+            if results:
+                link_achado = results[0]['href']
+                return jsonify({'success': True, 'link': link_achado})
+            else:
+                return jsonify({'success': False, 'error': 'Loja não encontrada. Tente digitar o nome exato.'})
+
+    except Exception as e:
+        print(f"Erro na busca: {e}")
+        return jsonify({'success': False, 'error': 'Erro ao buscar. Tente colar o link manualmente.'})
 
 @app.route('/tool/<tool_type>', methods=['GET', 'POST'])
 @login_required

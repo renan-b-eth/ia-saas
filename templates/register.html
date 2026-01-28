@@ -1,50 +1,103 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="min-h-[80vh] flex flex-col items-center justify-center px-4 py-10">
-    <div class="bg-gray-800 p-8 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-lg">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="min-h-[90vh] flex flex-col items-center justify-center px-4 py-10 bg-black">
+    <div class="bg-gray-800 p-8 rounded-3xl border border-gray-700 shadow-2xl w-full max-w-lg relative overflow-hidden">
         
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-white mb-2">Crie sua Conta</h1>
-            <p class="text-gray-400">Comece a automatizar seu varejo hoje.</p>
+        <div class="absolute -top-24 -right-24 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl"></div>
+
+        <div class="text-center mb-8 relative z-10">
+            <h1 class="text-3xl font-black text-white mb-2">Seja Bem-vindo</h1>
+            <p class="text-gray-400">Ative seu Trial de 14 dias agora.</p>
         </div>
 
-        <form method="POST" action="/register" class="space-y-5">
+        <form method="POST" action="/register" class="space-y-5 relative z-10">
             
             <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Nome da Empresa</label>
-                <input type="text" name="company" required placeholder="Ex: Padaria do João"
-                    class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-green-500 focus:ring-1 focus:ring-green-500">
+                <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Nome da Empresa</label>
+                <input type="text" name="company" required placeholder="Ex: Barberia Prime"
+                    class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition">
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Link do Google Maps</label>
-                <input type="url" name="maps_url" required placeholder="https://maps.google.com/..."
-                    class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-green-500 focus:ring-1 focus:ring-green-500">
-                <p class="text-xs text-gray-500 mt-1">Usamos isso para ler seus reviews automaticamente.</p>
+                <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Google Maps URL</label>
+                <div class="flex gap-2">
+                    <input type="url" name="maps_url" id="maps_input" required placeholder="Cole o link ou use a busca -->"
+                        class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition">
+                    
+                    <button type="button" onclick="abrirBuscador()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 rounded-xl transition shadow-lg">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <p class="text-[10px] text-blue-400 mt-2 cursor-pointer hover:underline" onclick="abrirBuscador()">
+                    🔎 Não sabe seu link? Clique aqui que eu encontro.
+                </p>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Email</label>
-                <input type="email" name="email" required 
-                    class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-green-500 focus:ring-1 focus:ring-green-500">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Email</label>
+                    <input type="email" name="email" required 
+                        class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Senha</label>
+                    <input type="password" name="password" required 
+                        class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition">
+                </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Senha</label>
-                <input type="password" name="password" required 
-                    class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-green-500 focus:ring-1 focus:ring-green-500">
-            </div>
-
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-lg mt-4">
-                🚀 Cadastrar e Testar
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl text-lg shadow-xl shadow-blue-900/20 transition-all transform hover:scale-[1.02] mt-4">
+                🚀 COMEÇAR TESTE GRÁTIS
             </button>
         </form>
 
-        <p class="mt-6 text-center text-sm text-gray-500">
-            Já tem uma conta? 
-            <a href="/login" class="text-blue-400 hover:text-blue-300 font-semibold hover:underline">Fazer Login</a>
+        <p class="mt-8 text-center text-sm text-gray-500">
+            Já é um membro? 
+            <a href="/login" class="text-blue-400 hover:text-blue-300 font-bold hover:underline">Fazer Login</a>
         </p>
     </div>
 </div>
+
+<script>
+    function abrirBuscador() {
+        Swal.fire({
+            title: 'Encontrar meu Link',
+            html: `
+                <input id="swal-nome" class="swal2-input" style="background:#111; color:white; border:1px solid #333;" placeholder="Nome da Loja">
+                <input id="swal-cidade" class="swal2-input" style="background:#111; color:white; border:1px solid #333;" placeholder="Sua Cidade">
+            `,
+            background: '#111', color: '#fff',
+            confirmButtonText: 'Buscar Agora',
+            confirmButtonColor: '#2563EB',
+            preConfirm: () => {
+                const nome = document.getElementById('swal-nome').value;
+                const cidade = document.getElementById('swal-cidade').value;
+                if (!nome || !cidade) return Swal.showValidationMessage('Preencha os dois campos');
+                return { nome, cidade };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'Buscando...', didOpen: () => Swal.showLoading(), background: '#111', color: '#fff' });
+                
+                fetch('/api/find_maps_link', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ empresa: result.value.nome, cidade: result.value.cidade })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('maps_input').value = data.link;
+                        Swal.fire({ icon: 'success', title: 'Achamos!', background: '#111', color: '#fff', timer: 2000 });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Não encontrado', text: data.error, background: '#111', color: '#fff' });
+                    }
+                });
+            }
+        });
+    }
+</script>
 {% endblock %}

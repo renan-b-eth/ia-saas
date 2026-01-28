@@ -28,3 +28,4 @@ requests
 python-dotenv
 gradio_client==1.3.0
 replicate
+duckduckgo-search
