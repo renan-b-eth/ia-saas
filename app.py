@@ -150,13 +150,12 @@ class Document(db.Model):
 
 def worker_video_tutorial(app_obj, report_id, user_id):
     """
-    WORKER V3 (FINAL): DOWNLOAD STRATEGY
-    - Gera Roteiro Viral.
-    - Renderiza Vídeo MP4 (Download First).
-    - Salva Automaticamente na Knowledge Base (Memória).
+    WORKER V4 (FIX PERMISSION DENIED):
+    - Força arquivos temporários na pasta /tmp para evitar erro de permissão no Hugging Face.
+    - Mantém a estratégia Download First.
     """
     with app_obj.app_context():
-        # Imports locais para evitar circularidade
+        # Imports locais
         from moviepy.editor import ImageClip, AudioFileClip
         from openai import OpenAI
         import edge_tts
@@ -165,7 +164,6 @@ def worker_video_tutorial(app_obj, report_id, user_id):
         import os
         import datetime
         
-        # Função de log interna
         def log_status(msg):
             timestamp = datetime.datetime.now().strftime("%H:%M:%S")
             print(f"[{timestamp}] 🎬 [VIDEO-WORKER] {msg}", flush=True)
@@ -174,20 +172,19 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             log_status(f"🚀 INICIANDO VÍDEO PARA REPORT: {report_id}")
             report = Report.query.get(report_id)
             
-            # --- 1. GERAÇÃO DO ROTEIRO (LLAMA 70B VIA NVIDIA) ---
+            # --- 1. GERAÇÃO DO ROTEIRO ---
             api_key = os.getenv("NVIDIA_API_KEY")
             client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
 
-            # Prompt focado apenas no texto falado
             prompt_sistema = """
             Você é um Diretor de Marketing especialista em Vídeos Virais (Reels/TikTok).
             Sua missão: Criar um roteiro curto e impactante baseado na entrada do usuário.
             Regra 1: Responda APENAS com o texto que será falado pelo locutor.
-            Regra 2: Não use marcações de cena como [Cena 1] ou (Música de fundo). Apenas o texto falado.
+            Regra 2: Não use marcações de cena. Apenas o texto falado.
             Regra 3: Máximo de 40 segundos de fala.
             """
             
-            # Usamos o input original ou a descrição da ferramenta
+            # Pega o input ou a descrição da ferramenta
             texto_base = report.input_data if report.input_data else report.tool_description
             prompt_usuario = f"Crie um roteiro viral sobre: {texto_base}"
 
@@ -199,46 +196,56 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             )
             
             roteiro = completion.choices[0].message.content.strip()
-            log_status("📝 Roteiro gerado com sucesso.")
+            log_status("📝 Roteiro gerado.")
 
-            # --- 2. GERAÇÃO DE ÁUDIO (EDGE TTS) ---
-            log_status("🎙️ Sintetizando voz neural...")
-            audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"audio_{report_id}.mp3")
+            # --- 2. GERAÇÃO DE ÁUDIO ---
+            # Define caminhos EXPLICITAMENTE na pasta configurada (/tmp)
+            upload_folder = app_obj.config['UPLOAD_FOLDER']
+            
+            audio_path = os.path.join(upload_folder, f"audio_{report_id}.mp3")
+            
             # Voz masculina pt-BR impactante
             asyncio.run(edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural").save(audio_path))
 
-            # --- 3. RENDERIZAÇÃO DE VÍDEO (MOVIEPY) ---
+            # --- 3. RENDERIZAÇÃO DE VÍDEO ---
             log_status("🎬 Renderizando MP4...")
-            video_filename = f"video_viral_{report_id}.mp4"
-            video_path_final = os.path.join(app_obj.config['UPLOAD_FOLDER'], video_filename)
-            foto_base = os.path.join(app_obj.config['UPLOAD_FOLDER'], "consultor_base.jpg")
             
+            video_filename = f"video_viral_{report_id}.mp4"
+            video_path_final = os.path.join(upload_folder, video_filename)
+            foto_base = os.path.join(upload_folder, "consultor_base.jpg")
+            
+            # [FIX CRÍTICO 1] Definimos onde o arquivo temporário vai ficar (na pasta /tmp)
+            temp_audio_path = os.path.join(upload_folder, f"temp_audio_{report_id}.m4a")
+
             # Garante que a imagem base existe
             if not os.path.exists(foto_base):
-                 log_status("⬇️ Baixando imagem base...")
                  r = requests.get("https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg")
                  with open(foto_base, 'wb') as f: f.write(r.content)
 
             # Montagem
             audio_clip = AudioFileClip(audio_path)
-            # Duração mínima de segurança (5s)
             duration = max(5, audio_clip.duration)
             
             final_clip = ImageClip(foto_base).set_duration(duration).set_audio(audio_clip).set_fps(24)
             
-            # Renderização com parâmetros de compatibilidade (yuv420p é vital para funcionar em todos players)
+            # Escreve o arquivo final
             final_clip.write_videofile(
                 video_path_final, 
                 codec='libx264', 
                 audio_codec='aac', 
-                preset='ultrafast', # Renderização rápida
+                preset='ultrafast', 
                 ffmpeg_params=['-pix_fmt', 'yuv420p'], 
-                logger=None
+                
+                # --- [FIX CRÍTICO 2] AQUI ESTÁ A CORREÇÃO DO ERRO ---
+                temp_audiofile=temp_audio_path,  # Força o temp a ir para /tmp
+                remove_temp=True,                # Apaga o temp depois
+                # ----------------------------------------------------
+                
+                logger=None # Desativa logs do MoviePy para evitar travamento de I/O
             )
 
-            # --- 4. SALVAR NA KNOWLEDGE BASE (MEMÓRIA) ---
-            # Aqui acontece a mágica: Salvamos na tabela Document
-            log_status("💾 Salvando na Memória do Cliente...")
+            # --- 4. SALVAR NA MEMÓRIA ---
+            log_status("💾 Salvando na Memória...")
             try:
                 new_doc = Document(
                     user_id=user_id,
@@ -249,14 +256,13 @@ def worker_video_tutorial(app_obj, report_id, user_id):
                 db.session.add(new_doc)
                 db.session.commit()
             except Exception as e_db:
-                log_status(f"⚠️ Erro ao salvar na memória (mas o vídeo foi gerado): {e_db}")
+                log_status(f"⚠️ Erro ao salvar DB: {e_db}")
 
-            # --- 5. FINALIZAÇÃO DO REPORT ---
-            # Formatamos a resposta para o HTML ler e criar o botão de download
+            # --- 5. FINALIZAÇÃO ---
             report.ai_response = f"VIDEO_FILENAME:{video_filename}|||ROTEIRO:{roteiro}"
             report.status = "COMPLETED"
             db.session.commit()
-            log_status("🏆 PROCESSO FINALIZADO COM SUCESSO!")
+            log_status("🏆 SUCESSO! VÍDEO PRONTO.")
 
         except Exception as e:
             log_status(f"💥 ERRO CRÍTICO: {str(e)}")
@@ -1041,6 +1047,20 @@ def create_portal_session():
     except Exception as e:
         flash("Erro ao abrir portal de pagamentos.", "danger")
         return redirect('/dashboard')
+    
+@app.route('/download_avatar/<filename>')
+def download_avatar(filename):
+    try:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'avatars', filename)
+        
+        # Se o arquivo não existe (foi apagado pelo Hugging Face), retorna imagem padrão
+        if not os.path.exists(file_path):
+            # Redireciona para um ícone genérico seguro
+            return redirect("https://cdn-icons-png.flaticon.com/512/3135/3135715.png")
+            
+        return send_file(file_path)
+    except Exception:
+        return redirect("https://cdn-icons-png.flaticon.com/512/3135/3135715.png")
 
 @app.route('/success')
 @login_required
@@ -1093,9 +1113,7 @@ def profile():
         flash("Perfil atualizado!", "success")
     return render_template('profile.html', user=current_user)
 
-@app.route('/download_avatar/<filename>')
-def download_avatar(filename):
-    return send_file(os.path.join(app.config['UPLOAD_FOLDER'], 'avatars', filename))
+
 
 if __name__ == '__main__': 
     # Roda o servidor
