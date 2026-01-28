@@ -677,31 +677,29 @@ def heavy_lifting_worker(app_obj, report_id, tool_type, user_input, file_path, u
                 gc.collect() # Limpeza de RAM obrigatória
 # --- 7. ROTAS DO FLASK (WEB) ---
 
-@app.route('/')
-def home(): 
-    # Se o usuário já estiver logado, ele não precisa ver a propaganda, 
-    # então mandamos ele direto para o trabalho no Dashboard.
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    
-    # Se for um visitante novo ou deslogado, mostramos a Landing Page (Index)
-    return render_template('index.html')
-# --- ROTA PRINCIPAL UNIFICADA ---
+# --- ROTA PRINCIPAL UNIFICADA (FIM DO ERRO 404) ---
 @app.route('/')
 def index():
-    # Se o usuário já estiver logado, ele vai direto para o Dashboard
+    # 1. Verificação de Login: Se logado, vai pro Dashboard
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     
-    # Preços exatos conforme sua imagem de pricing
+    # 2. Definição de Preços Reais para a Landing Page (Index)
+    # Estes valores batem com o seu pricing: $18.73, $31.93, $94.83
     precos_reais = {
         'starter': '18.73',
         'pro': '31.93',
         'agency': '94.83'
     }
     
-    # Renderiza a Landing Page para visitantes
+    # 3. Renderiza a Landing Page Profissional
     return render_template('index.html', precos=precos_reais)
+
+# Rota auxiliar para quem digitar /home ou /index por hábito
+@app.route('/home')
+@app.route('/index')
+def home_redirect():
+    return redirect(url_for('index'))
 
 # Redirecionamento amigável para evitar erro caso digitem /index
 @app.route('/index')
