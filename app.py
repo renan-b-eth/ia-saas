@@ -657,11 +657,18 @@ def heavy_lifting_worker(app_obj, report_id, tool_type, user_input, file_path, u
 
 @app.route('/')
 def home(): 
-    # Se o cara já estiver logado, manda pro dashboard
+    # Se o usuário já estiver logado, ele não precisa ver a propaganda, 
+    # então mandamos ele direto para o trabalho no Dashboard.
     if current_user.is_authenticated:
-        return redirect('/dashboard')
-    # Senão, mostra a landing page revolucionária
+        return redirect(url_for('dashboard'))
+    
+    # Se for um visitante novo ou deslogado, mostramos a Landing Page (Index)
     return render_template('index.html')
+
+# Opcional: Criar um redirecionamento caso ele digite /index manualmente
+@app.route('/index')
+def index_redirect():
+    return redirect(url_for('index'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -742,37 +749,36 @@ def dashboard():
         access=lambda u, tool_min: user_can_access(current_user, tool_min)
     )
 
-# --- ROTA AUXILIAR: ENCONTRAR LINK DO MAPS ---
-@app.route('/api/find_maps_link', methods=['POST'])
+#@app.route('/api/find_maps_link', methods=['POST'])
 def find_maps_link():
-    from duckduckgo_search import DDGS
-    
     data = request.json
     empresa = data.get('empresa')
     cidade = data.get('cidade')
     
     if not empresa or not cidade:
-        return jsonify({'error': 'Preencha nome e cidade'}), 400
+        return jsonify({'success': False, 'error': 'Preencha nome e cidade'}), 400
 
     try:
-        print(f"🔎 Buscando Maps para: {empresa} em {cidade}...")
-        
-        # Busca específica para encontrar links do Google Maps
-        query = f"site:google.com/maps/place {empresa} {cidade}"
-        
+        # Usando a biblioteca com timeout para não travar o servidor
         with DDGS() as ddgs:
-            # Pega o primeiro resultado
-            results = list(ddgs.text(query, max_results=1))
+            query = f"{empresa} {cidade} google maps"
+            # Filtramos apenas por links que contenham google.com/maps
+            results = ddgs.text(query, max_results=5)
             
-            if results:
-                link_achado = results[0]['href']
-                return jsonify({'success': True, 'link': link_achado})
+            link_final = None
+            for r in results:
+                if 'google.com/maps' in r['href'] or 'goo.gl/maps' in r['href']:
+                    link_final = r['href']
+                    break
+            
+            if link_final:
+                return jsonify({'success': True, 'link': link_final})
             else:
-                return jsonify({'success': False, 'error': 'Loja não encontrada. Tente digitar o nome exato.'})
+                return jsonify({'success': False, 'error': 'Loja não encontrada no Maps. Tente o nome exato.'})
 
     except Exception as e:
         print(f"Erro na busca: {e}")
-        return jsonify({'success': False, 'error': 'Erro ao buscar. Tente colar o link manualmente.'})
+        return jsonify({'success': False, 'error': 'Serviço de busca temporariamente instável.'})
 
 @app.route('/tool/<tool_type>', methods=['GET', 'POST'])
 @login_required
