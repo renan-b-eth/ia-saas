@@ -129,14 +129,12 @@ class Document(db.Model):
 
 def worker_video_tutorial(app_obj, report_id, user_id):
     """
-    WORKER HÍBRIDO PRO:
-    1. CÉREBRO (NVIDIA): Gera roteiro estratégico e análise de mercado.
-    2. VOZ (Edge-TTS): Narração neural profissional.
-    3. CORPO (MoviePy): Renderização de vídeo local (100% gratuito e estável).
+    WORKER FINAL:
+    - Correção de Texto: Remove lixo de código ('\n +') da NVIDIA.
+    - Correção de Vídeo: Força formato yuv420p para rodar no Chrome/Mobile.
     """
     with app_obj.app_context():
-        # Imports locais (para economizar memória no boot)
-        from moviepy.editor import ImageClip, AudioFileClip, CompositeVideoClip, TextClip
+        from moviepy.editor import ImageClip, AudioFileClip
         from openai import OpenAI
         import edge_tts
         import asyncio
@@ -144,163 +142,114 @@ def worker_video_tutorial(app_obj, report_id, user_id):
         import os
         import json
         import datetime
+        import re # Importante para limpar o texto
 
         def log_status(msg):
             timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-            print(f"[{timestamp}] 🧠 [NVIDIA + LOCAL] {msg}", flush=True)
+            print(f"[{timestamp}] 🛠️ [FIX FINAL] {msg}", flush=True)
 
         try:
             log_status(f"🚀 INICIANDO REPORT: {report_id}")
             report = Report.query.get(report_id)
             
-            # --- PASSO 1: CÉREBRO NVIDIA (Llama 3.1 70B) ---
-            # Usa a chave que você colocou nos Secrets
+            # --- 1. CÉREBRO NVIDIA ---
             api_key = os.getenv("NVIDIA_API_KEY")
-            
-            if not api_key:
-                raise Exception("ERRO: Configure a NVIDIA_API_KEY nos Secrets do Hugging Face!")
+            client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
 
-            client = OpenAI(
-                base_url="https://integrate.api.nvidia.com/v1",
-                api_key=api_key
-            )
-
-            log_status("📡 Conectando ao Supercomputador NVIDIA...")
-
-            # Prompt Especializado para Consultoria
             prompt_sistema = """
-            Você é um Consultor Estratégico de Startups Sênior.
-            Analise os dados da ferramenta e gere um JSON estrito contendo:
-            1. 'roteiro_curto': Um texto de no máximo 30 segundos, falado em primeira pessoa, elogiando a ferramenta e convidando para ler o relatório.
-            2. 'analise_html': Um relatório HTML moderno (use classes Tailwind se possível ou CSS inline bonito). Inclua:
-               - 🎯 Veredito do Especialista
-               - 🚀 3 Pontos de Crescimento
-               - ⚠️ 1 Ponto de Atenção
+            Você é um Consultor Sênior. Gere um JSON com:
+            1. 'roteiro_curto': Texto narrativo (max 40s).
+            2. 'analise_html': HTML puro e pronto para renderizar. 
+            IMPORTANTE: NÃO use concatenação de string (ex: não faça "texto" + "texto"). Entregue o HTML limpo em uma única linha ou bloco de texto.
             """
 
-            prompt_usuario = f"""
-            Ferramenta: {report.tool_name}
-            Link: {report.tool_url}
-            Descrição: {report.tool_description}
-            """
+            prompt_usuario = f"Analise: {report.tool_name} - {report.tool_description}"
 
             completion = client.chat.completions.create(
-                model="meta/llama-3.1-70b-instruct", # O modelo poderoso que escolhemos
-                messages=[
-                    {"role": "system", "content": prompt_sistema},
-                    {"role": "user", "content": prompt_usuario}
-                ],
-                temperature=0.6,
+                model="meta/llama-3.1-70b-instruct",
+                messages=[{"role": "system", "content": prompt_sistema}, {"role": "user", "content": prompt_usuario}],
+                temperature=0.5,
                 top_p=1,
                 max_tokens=2048
             )
 
-            # Limpeza e Parsing do JSON da NVIDIA
             texto_raw = completion.choices[0].message.content
-            # Remove crases de código se a IA mandar
+            # Limpeza bruta inicial
             texto_limpo = texto_raw.replace("```json", "").replace("```", "").strip()
             
             try:
                 dados_ia = json.loads(texto_limpo)
-                roteiro = dados_ia.get('roteiro_curto', "Olá! Sua análise está pronta abaixo.")
-                html_analise = dados_ia.get('analise_html', "<p>Confira a análise detalhada.</p>")
+                roteiro = dados_ia.get('roteiro_curto', "Análise pronta.")
+                html_sujo = dados_ia.get('analise_html', "")
+                
+                # --- A LIMPEZA MÁGICA DO HTML ---
+                # Remove padrões de código Python que apareceram na sua tela
+                html_analise = html_sujo.replace('"\n + "', ' ').replace('\\n', '<br>').replace(' + ', ' ')
+                # Remove aspas extras no início/fim se sobrarem
+                html_analise = html_analise.strip('"').strip("'")
+                
             except:
-                # Fallback caso a IA não mande JSON perfeito
-                roteiro = "Olá! Sou o consultor da Rendey. Preparei uma análise estratégica completa sobre sua ferramenta. Confira os dados detalhados logo abaixo deste vídeo."
+                roteiro = "Análise concluída. Veja os detalhes abaixo."
                 html_analise = f"<div class='prose'>{texto_raw}</div>"
 
-            log_status("✅ Roteiro e Análise gerados pela NVIDIA.")
+            # --- 2. VOZ ---
+            log_status("🎙️ Gerando áudio...")
+            audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"audio_{report_id}.mp3")
+            asyncio.run(edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural").save(audio_path))
 
-            # --- PASSO 2: VOZ PROFISSIONAL (Edge-TTS) ---
-            log_status("🎙️ Gerando narração neural...")
-            audio_filename = f"audio_{report_id}.mp3"
-            audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], audio_filename)
-            
-            async def generate_voice():
-                # Voz masculina séria e confiável
-                communicate = edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural")
-                await communicate.save(audio_path)
-            
-            asyncio.run(generate_voice())
-
-            # --- PASSO 3: VÍDEO LOCAL (MoviePy - Sem Mirrors Falhos) ---
-            log_status("🎬 Renderizando vídeo na CPU local...")
+            # --- 3. VÍDEO (COM CORREÇÃO PARA NAVEGADOR) ---
+            log_status("🎬 Renderizando vídeo compatível com Chrome...")
             
             video_filename = f"video_final_{report_id}.mp4"
             video_path_final = os.path.join(app_obj.config['UPLOAD_FOLDER'], video_filename)
             foto_base = os.path.join(app_obj.config['UPLOAD_FOLDER'], "consultor_base.jpg")
+            temp_audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"temp_audio_{report_id}.m4a")
 
-            # Baixa a foto do consultor (Cache)
             if not os.path.exists(foto_base):
                  r = requests.get("https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg")
                  with open(foto_base, 'wb') as f: f.write(r.content)
 
-            # Montagem do Vídeo
-            # 1. Carrega áudio
             audio_clip = AudioFileClip(audio_path)
-            
-            # 2. Cria clipe de imagem com a duração do áudio
-            image_clip = ImageClip(foto_base).set_duration(audio_clip.duration)
-            
-            # 3. Junta áudio e imagem
-            final_clip = image_clip.set_audio(audio_clip)
-            final_clip = final_clip.set_fps(24)
-            temp_audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"temp_audio_{report_id}.m4a")
+            final_clip = ImageClip(foto_base).set_duration(audio_clip.duration).set_audio(audio_clip).set_fps(24)
 
-            # 4. Renderiza (Preset ultrafast para não travar o servidor)
+            # O SEGREDO DO PLAY: ffmpeg_params=['-pix_fmt', 'yuv420p']
             final_clip.write_videofile(
                 video_path_final, 
                 codec='libx264', 
                 audio_codec='aac', 
                 preset='ultrafast',
-                # O SEGREDO ESTÁ AQUI: Força o temp file a ir para a pasta permitida
-                temp_audiofile=temp_audio_path, 
+                ffmpeg_params=['-pix_fmt', 'yuv420p'], # <--- ISSO CONSERTA O VÍDEO 00:00
+                temp_audiofile=temp_audio_path,
                 remove_temp=True,
-                logger=None 
+                logger=None
             )
 
-            # --- PASSO 4: FINALIZAÇÃO ---
-            video_url_publica = f"/static/uploads/{video_filename}"
+            # --- 4. SALVAR ---
+            video_url = f"/static/uploads/{video_filename}"
             
-            # HTML Final com Design "NVIDIA Style"
-            html_completo = f"""
-            <div class="bg-gray-900 border border-green-500/50 rounded-2xl p-6 shadow-2xl mb-8">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="bg-green-500 text-black text-xs font-bold px-2 py-1 rounded">NVIDIA POWERED</span>
-                    <h2 class="text-white text-lg font-bold">Análise do Consultor IA</h2>
-                </div>
-                
-                <div class="relative w-full max-w-2xl mx-auto rounded-xl overflow-hidden border-2 border-gray-700 shadow-lg">
-                    <video width="100%" controls autoplay poster="https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg">
-                        <source src="{video_url_publica}" type="video/mp4">
-                        Seu navegador não suporta vídeos.
+            html_final = f"""
+            <div class="bg-gray-900 rounded-xl p-6 shadow-2xl border border-indigo-500/30">
+                <h2 class="text-white font-bold text-xl mb-4">🎥 Análise Estratégica</h2>
+                <div class="mb-6 rounded-lg overflow-hidden border border-gray-700 aspect-video">
+                    <video controls class="w-full h-full object-cover">
+                        <source src="{video_url}" type="video/mp4">
                     </video>
                 </div>
-
-                <div class="mt-8 text-gray-300 prose prose-invert max-w-none">
+                <div class="prose prose-invert max-w-none text-gray-300">
                     {html_analise}
                 </div>
             </div>
             """
             
-            report.ai_response = html_completo
+            report.ai_response = html_final
             report.status = "COMPLETED"
             db.session.commit()
-            
-            # Limpeza de arquivos temporários
-            try: os.remove(audio_path)
-            except: pass
-            
-            log_status(f"🏆 SUCESSO! Relatório {report_id} finalizado.")
+            log_status("🏆 SUCESSO TOTAL!")
 
         except Exception as e:
-            error_msg = str(e)
-            log_status(f"💥 ERRO FATAL: {error_msg}")
-            report = Report.query.get(report_id)
-            if report:
-                report.status = "ERROR"
-                report.ai_response = f"<div class='p-4 bg-red-900 text-red-200 rounded'>Erro: {error_msg}</div>"
-                db.session.commit()
+            log_status(f"💥 ERRO: {str(e)}")
+            report.status = "ERROR"
+            db.session.commit()
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
 # --- [NOVO] LÓGICA DO TRIAL (14 DIAS) ---
