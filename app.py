@@ -677,6 +677,32 @@ def heavy_lifting_worker(app_obj, report_id, tool_type, user_input, file_path, u
                 gc.collect() # Limpeza de RAM obrigatória
 # --- 7. ROTAS DO FLASK (WEB) ---
 
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    # Garante que as variáveis necessárias para o dashboard.html existam
+    reports = Report.query.filter_by(user_id=current_user.id).order_by(Report.date_created.desc()).limit(20).all()
+    
+    # Categorias para o Filtro no Dashboard
+    categories = {
+        "Marketing": ['instavideo', 'instapost', 'promo', 'localseo'],
+        "Operacional": ['sop', 'waste', 'delivery'],
+        "Estratégico": ['persona', 'spy', 'audit', 'menu_eng'],
+        "RH": ['job_desc', 'interview']
+    }
+    
+    recomendações = get_recommendations(current_user.company_name)
+    
+    # IMPORTANTE: Renderize o dashboard.html passando os AGENTS_CONFIG
+    return render_template('dashboard.html', 
+                           categories=categories, 
+                           recomendações=recomendações,
+                           tools=AGENTS_CONFIG, # Certifique-se de que AGENTS_CONFIG está definido no topo do app.py
+                           reports=reports,
+                           user=current_user,
+                           effective_plan=get_effective_plan(current_user), # Use a função que criamos antes
+                           days_left=get_trial_days_left(current_user))
+
 # --- ROTA PRINCIPAL UNIFICADA (FIM DO ERRO 404) ---
 @app.route('/')
 def index():
@@ -771,26 +797,6 @@ def support():
     """
     return render_template('support.html')
 
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    reports = Report.query.filter_by(user_id=current_user.id).order_by(Report.date_created.desc()).limit(20).all()
-    
-    # Categorias para o Filtro
-    categories = {
-        "Marketing": ['instavideo', 'instapost', 'promo', 'localseo', 'event_launcher'],
-        "Operacional": ['sop', 'waste', 'delivery', 'loss_prevention'],
-        "Estratégico": ['persona', 'spy', 'audit', 'menu_eng', 'shark_negotiator'],
-        "RH": ['job_desc', 'interview']
-    }
-    
-    recomendações = get_recommendations(current_user.company_name)
-    
-    return render_template('dashboard.html', 
-                           categories=categories, 
-                           recomendações=recomendações,
-                           tools=AGENTS_CONFIG,
-                           reports=reports)
 
 @app.route('/api/find_maps_link', methods=['POST'])
 def find_maps_link():
