@@ -1,107 +1,219 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="px-4 py-8">
+<script src="https://unpkg.com/@lucide/web-bin"></script>
+
+<div class="px-4 py-8 max-w-7xl mx-auto" id="dashboard-app">
     
     {% if effective_plan == 'pro' and user.plan_tier == 'free' %}
-    <div class="bg-gradient-to-r from-yellow-600 to-orange-600 text-white p-4 rounded-lg shadow-lg mb-8 flex flex-col md:flex-row justify-between items-center animate-pulse">
-        <div class="mb-2 md:mb-0">
-            <h3 class="font-bold text-lg"><i class="fas fa-fire mr-2"></i>Período de Teste Grátis Ativo!</h3>
-            <p class="text-sm">Você tem acesso total liberado por mais <strong>{{ days_left }} dias</strong>. Aproveite!</p>
+    <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 text-white p-6 rounded-3xl shadow-2xl mb-10 flex flex-col md:flex-row justify-between items-center relative overflow-hidden group">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        <div class="relative z-10">
+            <h3 class="font-black text-2xl flex items-center gap-2">
+                <i data-lucide="zap" class="fill-current text-yellow-400"></i>
+                MODO TURBO: ATIVADO
+            </h3>
+            <p class="text-blue-100 opacity-90 mt-1">Você está usando o Plano Pro gratuitamente. Restam <strong>{{ days_left }} dias</strong> de acesso total.</p>
         </div>
-        <a href="/pricing" class="bg-white text-orange-600 font-bold py-2 px-6 rounded-full hover:bg-gray-100 transition shadow-md">
-            Garantir Desconto
+        <a href="/pricing" class="relative z-10 mt-4 md:mt-0 bg-white text-blue-700 font-black py-4 px-8 rounded-2xl hover:scale-105 transition shadow-xl">
+            GARANTIR ACESSO VITALÍCIO
         </a>
     </div>
     {% endif %}
 
-    <div class="flex flex-col md:flex-row justify-between items-center mb-10 bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl">
-        <div class="flex items-center gap-4">
-            <div class="relative">
-                <img src="{{ user.avatar_url }}" class="w-16 h-16 rounded-full border-2 border-blue-500 object-cover" onerror="this.src='https://ui-avatars.com/api/?name={{ user.company_name }}&background=2563eb&color=fff'">
-                <div class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-gray-800 rounded-full"></div>
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+        <div class="flex items-center gap-5">
+            <div class="relative group">
+                <img src="{{ user.avatar_url }}" class="w-20 h-20 rounded-[2rem] border-4 border-gray-800 object-cover shadow-2xl group-hover:scale-105 transition" onerror="this.src='https://ui-avatars.com/api/?name={{ user.company_name }}&background=2563eb&color=fff'">
+                <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-4 border-gray-900 rounded-full"></div>
             </div>
             <div>
-                <h1 class="text-2xl font-bold text-white">Olá, {{ user.full_name or user.company_name }} 👋</h1>
-                <p class="text-gray-400 text-sm">Plano: <span class="text-green-400 uppercase font-black">{{ effective_plan }}</span></p>
+                <h1 class="text-3xl font-black text-white tracking-tighter">Olá, {{ user.full_name or user.company_name }}</h1>
+                <div class="flex items-center gap-3 mt-1">
+                    <span class="bg-blue-900/40 text-blue-400 text-[10px] px-2 py-0.5 rounded-full border border-blue-500/30 font-bold uppercase tracking-widest">{{ effective_plan }} MEMBER</span>
+                    <span class="text-gray-500 text-xs flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> Rendey Cloud Boise, ID</span>
+                </div>
             </div>
         </div>
         
-        <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
-            <a href="/profile" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm text-white transition">
-                <i class="fas fa-user-cog mr-2"></i>Perfil
+        <div class="flex gap-3">
+            <a href="/knowledge" class="bg-gray-800 hover:bg-gray-700 p-4 rounded-2xl text-gray-300 transition-all border border-gray-700 flex items-center gap-3">
+                <i data-lucide="brain" class="w-5 h-5 text-purple-400"></i>
+                <span class="font-bold text-sm">Memória da IA</span>
             </a>
-            
-            {% if user.plan_tier != 'free' %}
-            <form action="/create-portal-session" method="POST" class="inline">
-                <button type="submit" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm text-white transition">
-                    <i class="fas fa-credit-card mr-2"></i>Assinatura
-                </button>
-            </form>
-            {% endif %}
-
-            <a href="/logout" class="bg-red-900/50 hover:bg-red-600 px-4 py-2 rounded-lg text-sm text-red-100 transition border border-red-500/30">
-                <i class="fas fa-sign-out-alt mr-2"></i>Sair
+            <a href="/profile" class="bg-gray-800 hover:bg-gray-700 p-4 rounded-2xl text-gray-300 transition-all border border-gray-700">
+                <i data-lucide="settings" class="w-5 h-5"></i>
             </a>
         </div>
     </div>
 
-    <h2 class="text-xl font-bold text-white mb-6 border-l-4 border-blue-500 pl-3">Ferramentas Disponíveis</h2>
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-12">
+    <div class="mb-12">
+        <div class="flex items-center gap-2 mb-6">
+            <div class="p-2 bg-blue-600 rounded-lg"><i data-lucide="sparkles" class="w-4 h-4 text-white"></i></div>
+            <h2 class="text-xl font-black text-white uppercase tracking-widest text-sm">IA Suggestion: Recomendado para o nicho de {{ user.company_name }}</h2>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for tool_id in recomendações %}
+                {% set tool = tools[tool_id] %}
+                {% if tool %}
+                <a href="/tool/{{ tool_id }}" class="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-[2.5rem] border border-white/5 hover:border-blue-500/40 transition group relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-100 transition"><i data-lucide="star" class="text-blue-500"></i></div>
+                    <div class="text-4xl mb-4 transform group-hover:scale-110 transition duration-300">{{ tool.icon }}</div>
+                    <h3 class="text-lg font-black text-white group-hover:text-blue-400 transition">{{ tool.name }}</h3>
+                    <p class="text-gray-500 text-xs mt-2 line-clamp-2">Aumente seus resultados com este agente especializado.</p>
+                </a>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="flex items-center justify-between mb-8">
+        <h2 class="text-xl font-black text-white border-l-4 border-blue-600 pl-4 uppercase tracking-tighter">Todos os Agentes</h2>
+        <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            <button onclick="filterTools('all')" class="cat-btn active px-4 py-2 rounded-xl text-xs font-bold transition">Todos</button>
+            <button onclick="filterTools('Marketing')" class="cat-btn px-4 py-2 rounded-xl text-xs font-bold transition">Marketing</button>
+            <button onclick="filterTools('Operacional')" class="cat-btn px-4 py-2 rounded-xl text-xs font-bold transition">Operação</button>
+            <button onclick="filterTools('Estratégico')" class="cat-btn px-4 py-2 rounded-xl text-xs font-bold transition">Estratégia</button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-16" id="tools-grid">
         {% for key, tool in tools.items() %}
             {% set is_locked = not access(user, tool.min_plan) %}
-            <div class="relative group">
+            
+            {# Lógica para CSS de Categoria #}
+            {% set cat = "Marketing" %}
+            {% if key in ['sop', 'waste', 'delivery', 'loss_prevention'] %}{% set cat = "Operacional" %}{% endif %}
+            {% if key in ['persona', 'spy', 'audit', 'menu_eng', 'shark_negotiator'] %}{% set cat = "Estratégico" %}{% endif %}
+            {% if key in ['job_desc', 'interview'] %}{% set cat = "RH" %}{% endif %}
+
+            <div class="tool-card group" data-category="{{ cat }}">
                 {% if is_locked %}
-                    <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6 h-full flex flex-col items-center justify-center text-center opacity-60 cursor-not-allowed">
-                        <div class="absolute top-2 right-2 text-yellow-500 text-xl"><i class="fas fa-lock"></i></div>
+                    <div class="bg-gray-800/40 border border-gray-700/50 rounded-3xl p-6 h-full flex flex-col items-center justify-center text-center opacity-40 relative group">
+                        <div class="absolute inset-0 flex items-center justify-center z-10">
+                            <i data-lucide="lock" class="text-gray-500 w-8 h-8"></i>
+                        </div>
                         <div class="text-4xl mb-3 grayscale">{{ tool.icon }}</div>
-                        <h3 class="font-bold text-gray-400">{{ tool.name }}</h3>
-                        <a href="/pricing" class="absolute inset-0 z-10"></a>
+                        <h3 class="font-bold text-gray-500 text-sm">{{ tool.name }}</h3>
+                        <a href="/pricing" class="absolute inset-0 z-20"></a>
                     </div>
                 {% else %}
-                    <a href="/tool/{{ key }}" class="bg-gray-800 border border-gray-700 rounded-xl p-6 h-full flex flex-col items-center text-center hover:bg-gray-700 hover:border-blue-500 transition shadow-lg transform hover:-translate-y-1">
-                        <div class="text-4xl mb-3">{{ tool.icon }}</div>
-                        <h3 class="font-bold text-white">{{ tool.name }}</h3>
+                    <a href="/tool/{{ key }}" class="bg-gray-800 border border-gray-700 rounded-3xl p-6 h-full flex flex-col items-center text-center hover:bg-gray-700 hover:border-blue-500 transition-all shadow-xl group hover:-translate-y-2">
+                        <div class="text-4xl mb-4 group-hover:scale-125 transition duration-500">{{ tool.icon }}</div>
+                        <h3 class="font-bold text-white text-sm group-hover:text-blue-400 transition">{{ tool.name }}</h3>
+                        <div class="mt-4 opacity-0 group-hover:opacity-100 transition text-[10px] font-bold text-blue-500 uppercase tracking-widest">Acessar Agente</div>
                     </a>
                 {% endif %}
             </div>
         {% endfor %}
     </div>
 
-    <h2 class="text-xl font-bold text-white mb-6 border-l-4 border-purple-500 pl-3">Histórico Recente</h2>
-    <div class="bg-gray-800 rounded-xl overflow-hidden shadow-lg">
-        <table class="min-w-full text-left">
-            <thead class="bg-gray-700 text-gray-300">
-                <tr>
-                    <th class="px-6 py-3">Ferramenta</th>
-                    <th class="px-6 py-3">Data</th>
-                    <th class="px-6 py-3">Status</th>
-                    <th class="px-6 py-3">Ação</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-700">
-                {% for report in reports %}
-                <tr class="hover:bg-gray-750 transition">
-                    <td class="px-6 py-4 font-medium text-white">{{ report.tool_name }}</td>
-                    <td class="px-6 py-4 text-gray-400 text-sm">{{ report.date_created.strftime('%d/%m %H:%M') }}</td>
-                    <td class="px-6 py-4">
-                        {% if report.status == 'COMPLETED' %}
-                            <span class="bg-green-900 text-green-300 px-2 py-1 rounded text-xs font-bold">Pronto</span>
-                        {% elif report.status == 'PROCESSING' or report.status == 'PENDING' %}
-                            <span class="bg-yellow-900 text-yellow-300 px-2 py-1 rounded text-xs font-bold animate-pulse">Gerando...</span>
-                        {% else %}
-                            <span class="bg-red-900 text-red-300 px-2 py-1 rounded text-xs font-bold">Erro</span>
-                        {% endif %}
-                    </td>
-                    <td class="px-6 py-4">
-                        <a href="/report/{{ report.id }}" class="text-blue-400 hover:text-white underline text-sm">Ver Resultado</a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="4" class="px-6 py-8 text-center text-gray-500">Nenhum relatório ainda.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+        <div class="bg-blue-600 rounded-[3rem] p-10 text-white relative overflow-hidden group">
+            <div class="relative z-10">
+                <h3 class="text-3xl font-black mb-4 leading-none">Precisa de um Agente Personalizado?</h3>
+                <p class="text-blue-100 mb-8 max-w-xs">Criamos IAs exclusivas para processos específicos do seu negócio. Fale com nossos engenheiros.</p>
+                <a href="mailto:contact@rendey.store" class="bg-black text-white px-8 py-4 rounded-2xl font-black hover:scale-105 transition inline-block">ENTRAR EM CONTATO</a>
+            </div>
+            <i data-lucide="construction" class="absolute -bottom-10 -right-10 w-64 h-64 opacity-10 group-hover:rotate-12 transition duration-700"></i>
+        </div>
+
+        <div class="bg-gray-800 rounded-[3rem] p-10 border border-gray-700 flex flex-col justify-between">
+            <div>
+                <h3 class="text-white text-2xl font-black mb-2 flex items-center gap-2">
+                    <i data-lucide="help-circle" class="text-green-500"></i> Centro de Ajuda
+                </h3>
+                <p class="text-gray-400">Aprenda a extrair o máximo dos robôs de inteligência estratégica da Rendey.</p>
+            </div>
+            <a href="/support" class="mt-8 text-blue-400 font-bold hover:underline flex items-center gap-2">
+                Acessar Guia de Uso <i data-lucide="external-link" class="w-4 h-4"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-gray-800 rounded-[2.5rem] border border-gray-700 shadow-2xl overflow-hidden">
+        <div class="p-8 border-b border-gray-700 flex justify-between items-center">
+            <h2 class="text-xl font-black text-white flex items-center gap-2"><i data-lucide="clock" class="text-gray-500"></i> Histórico Recente</h2>
+            <span class="text-xs text-gray-500 font-bold uppercase tracking-widest">Últimos 20 registros</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-gray-900/50 text-gray-500 text-[10px] uppercase font-black tracking-widest">
+                    <tr>
+                        <th class="px-8 py-4">Agente</th>
+                        <th class="px-8 py-4">Data de Execução</th>
+                        <th class="px-8 py-4">Status</th>
+                        <th class="px-8 py-4 text-right">Resultado</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-700/50">
+                    {% for report in reports %}
+                    <tr class="hover:bg-white/5 transition group">
+                        <td class="px-8 py-6">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                                <span class="font-bold text-white">{{ report.tool_name }}</span>
+                            </div>
+                        </td>
+                        <td class="px-8 py-6 text-gray-400 text-sm font-medium">{{ report.date_created.strftime('%d %b, %H:%M') }}</td>
+                        <td class="px-8 py-6">
+                            {% if report.status == 'COMPLETED' %}
+                                <span class="text-green-400 text-xs font-black uppercase tracking-tighter flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> Pronto</span>
+                            {% elif 'PROCESSING' in report.status %}
+                                <span class="text-yellow-500 text-xs font-black uppercase tracking-tighter animate-pulse">Processando...</span>
+                            {% else %}
+                                <span class="text-red-500 text-xs font-black uppercase tracking-tighter">Falha</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-8 py-6 text-right">
+                            <a href="/report/{{ report.id }}" class="bg-white/5 group-hover:bg-blue-600 group-hover:text-white text-gray-400 px-4 py-2 rounded-lg text-xs font-black transition">ABRIR</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="px-8 py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Nenhuma atividade registrada</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+<style>
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .cat-btn { background: #1f2937; color: #9ca3af; border: 1px solid transparent; }
+    .cat-btn:hover { background: #374151; color: white; }
+    .cat-btn.active { background: #2563eb; color: white; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4); }
+    
+    .tool-card.hidden { display: none; }
+    
+    @keyframes fade-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .tool-card { animation: fade-in 0.5s ease-out forwards; }
+</style>
+
+<script>
+    lucide.createIcons();
+
+    function filterTools(category) {
+        // Atualiza botões
+        document.querySelectorAll('.cat-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if(btn.innerText.toLowerCase() === category.toLowerCase() || (category === 'all' && btn.innerText === 'Todos')) {
+                btn.classList.add('active');
+            }
+        });
+
+        // Filtra cards
+        const cards = document.querySelectorAll('.tool-card');
+        cards.forEach(card => {
+            if (category === 'all' || card.getAttribute('data-category') === category) {
+                card.classList.remove('hidden');
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+    }
+</script>
 {% endblock %}

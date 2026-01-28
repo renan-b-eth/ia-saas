@@ -272,6 +272,18 @@ def worker_video_tutorial(app_obj, report_id, user_id):
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
 # --- [NOVO] LÓGICA DO TRIAL (14 DIAS) ---
+
+def get_recommendations(company_name):
+    # Lógica simples de palavras-chave para nichos
+    name = company_name.lower()
+    if any(x in name for x in ['pizzaria', 'restaurante', 'hamburgueria', 'café', 'doce']):
+        return ['menu_eng', 'waste', 'delivery', 'instavideo']
+    elif any(x in name for x in ['loja', 'roupa', 'fashion', 'boutique', 'calcado']):
+        return ['persona', 'instapost', 'spy', 'visual_merch']
+    elif any(x in name for x in ['barbearia', 'salão', 'estetica']):
+        return ['upsell', 'localseo', 'review_reply', 'instavideo']
+    return ['instavideo', 'promo', 'persona'] # Padrão
+
 def get_effective_plan(user):
     """
     Calcula o plano REAL do usuário.
@@ -725,29 +737,23 @@ def register():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # Busca os últimos 20 relatórios
     reports = Report.query.filter_by(user_id=current_user.id).order_by(Report.date_created.desc()).limit(20).all()
     
-    # Calcula variáveis do Trial
-    effective_plan = get_effective_plan(current_user)
-    days_left = get_trial_days_left(current_user)
-
-    # [NOVO] Cálculo do tempo de banimento restante (em segundos)
-    ban_seconds_left = 0
-    if current_user.ban_until and current_user.ban_until > datetime.utcnow():
-        ban_seconds_left = int((current_user.ban_until - datetime.utcnow()).total_seconds())
-
-    # Passa as funções e as novas variáveis de banimento para o Template
-    return render_template(
-        'dashboard.html', 
-        user=current_user, 
-        reports=reports, 
-        tools=AGENTS_CONFIG, 
-        effective_plan=effective_plan,
-        days_left=days_left,
-        ban_time=ban_seconds_left, # Variavel para o cronômetro JS
-        access=lambda u, tool_min: user_can_access(current_user, tool_min)
-    )
+    # Categorias para o Filtro
+    categories = {
+        "Marketing": ['instavideo', 'instapost', 'promo', 'localseo', 'event_launcher'],
+        "Operacional": ['sop', 'waste', 'delivery', 'loss_prevention'],
+        "Estratégico": ['persona', 'spy', 'audit', 'menu_eng', 'shark_negotiator'],
+        "RH": ['job_desc', 'interview']
+    }
+    
+    recomendações = get_recommendations(current_user.company_name)
+    
+    return render_template('dashboard.html', 
+                           categories=categories, 
+                           recomendações=recomendações,
+                           tools=AGENTS_CONFIG,
+                           reports=reports)
 
 @app.route('/api/find_maps_link', methods=['POST'])
 def find_maps_link():
