@@ -1,131 +1,281 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto py-8 px-4">
-    <div class="flex flex-col lg:flex-row gap-8">
+<div class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col lg:flex-row gap-10">
         
-        <div class="lg:w-1/4 space-y-4">
-            <a href="/dashboard" class="flex items-center gap-3 bg-gray-800 hover:bg-gray-700 text-white p-4 rounded-xl border border-gray-700 transition shadow-lg">
-                <i class="fas fa-arrow-left text-blue-400"></i>
-                <span class="font-bold">Voltar ao Dashboard</span>
+        <div class="lg:w-1/4 space-y-6">
+            <a href="/dashboard" class="group flex items-center gap-4 bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white p-5 rounded-2xl border border-gray-700 hover:border-blue-500/50 transition-all duration-300 shadow-lg backdrop-blur-sm">
+                <div class="bg-gray-800 p-2 rounded-lg group-hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-arrow-left text-sm"></i>
+                </div>
+                <span class="font-bold tracking-wide text-sm">Dashboard</span>
             </a>
             
-            <div class="bg-red-900/20 p-6 rounded-2xl border border-red-500/30 shadow-xl">
-                <h3 class="text-red-400 text-xs font-black uppercase tracking-widest mb-3">⚠️ Regras de Uso</h3>
-                <p class="text-gray-300 text-xs leading-relaxed">
-                    Este agente é exclusivo para <strong>{{ tool.name }}</strong>. 
-                    É proibido falar sobre futebol, política ou temas fora do varejo.
+            <div class="bg-gradient-to-br from-red-900/10 to-gray-900 p-6 rounded-3xl border border-red-500/20 shadow-xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-red-500/10 rounded-full blur-xl"></div>
+                
+                <h3 class="text-red-400 text-xs font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                    <i class="fas fa-shield-alt"></i> Compliance
+                </h3>
+                
+                <p class="text-gray-400 text-xs leading-relaxed font-medium">
+                    Este agente <strong>{{ tool.name }}</strong> é monitorado por IA. O uso é estritamente profissional para varejo.
                 </p>
-                <div class="mt-4 p-2 bg-black/40 rounded border border-red-500/20 text-[10px] text-red-300">
-                    <strong>Punição:</strong> 3 advertências resultam em bloqueio de 12h sem reembolso.
+                
+                <ul class="mt-4 space-y-2 text-[10px] text-gray-500">
+                    <li class="flex items-center gap-2">
+                        <span class="text-red-500">●</span> Proibido: Futebol, Política, Jogos.
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <span class="text-red-500">●</span> Proibido: Conteúdo NSFW ou Hate.
+                    </li>
+                </ul>
+
+                <div class="mt-5 p-3 bg-red-950/30 rounded-xl border border-red-500/10 text-[10px] text-red-300 flex items-start gap-2">
+                    <i class="fas fa-exclamation-circle mt-0.5"></i>
+                    <span><strong>Regra de 3 Strikes:</strong> 3 violações resultam em suspensão imediata de 12h.</span>
+                </div>
+            </div>
+
+            <div class="bg-gray-900/50 p-4 rounded-2xl border border-gray-800 text-center">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Status do Motor IA</p>
+                <div class="flex items-center justify-center gap-2">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <span class="text-xs font-bold text-green-400">NVIDIA H100 Online</span>
                 </div>
             </div>
         </div>
 
         <div class="lg:w-3/4">
-            <div class="bg-gray-800 rounded-3xl border border-gray-700 shadow-2xl overflow-hidden mb-8">
-                <div class="p-8 border-b border-gray-700 bg-gray-800/50 flex items-center gap-4">
-                    <div class="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-3xl shadow-inner">
+            
+            <div class="bg-gray-800 rounded-t-3xl border-x border-t border-gray-700 shadow-2xl overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+                
+                <div class="p-8 bg-gray-800/80 backdrop-blur-md flex flex-col md:flex-row items-start md:items-center gap-6">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center text-3xl shadow-lg ring-4 ring-gray-800 transform hover:scale-105 transition duration-300">
                         {{ tool.icon }}
                     </div>
-                    <div>
-                        <h1 class="text-3xl font-black text-white">{{ tool.name }}</h1>
-                        <p class="text-gray-400 text-sm">Agente IA • Monitorado por Guardrails</p>
+                    <div class="flex-1">
+                        <h1 class="text-3xl font-black text-white tracking-tight">{{ tool.name }}</h1>
+                        <p class="text-gray-400 text-sm mt-1 flex items-center gap-2">
+                            <i class="fas fa-microchip text-blue-400"></i> Agente Especializado 
+                            <span class="text-gray-600">|</span> 
+                            <span class="bg-blue-900/30 text-blue-300 text-xs px-2 py-0.5 rounded border border-blue-500/20">{{ tool.type|upper }} MODEL</span>
+                        </p>
                     </div>
                 </div>
+            </div>
 
-                <div class="p-8">
-                    {% with messages = get_flashed_messages(with_categories=true) %}
-                      {% if messages %}
-                        {% for category, message in messages %}
-                          {% if category == 'warning' %}
-                          <div class="mb-6 p-4 bg-orange-900/30 border border-orange-500 text-orange-200 rounded-xl flex items-center gap-3 animate-pulse">
-                              <i class="fas fa-exclamation-triangle"></i>
-                              <span>{{ message }}</span>
+            <div class="bg-gray-800 border-x border-b border-gray-700 rounded-b-3xl shadow-2xl p-8 mb-8">
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      {% if category == 'warning' %}
+                      <div class="mb-8 p-4 bg-orange-900/20 border-l-4 border-orange-500 text-orange-100 rounded-r-lg flex items-start gap-4 animate-fade-in">
+                          <i class="fas fa-exclamation-triangle mt-1 text-orange-500"></i>
+                          <div>
+                              <strong class="block text-sm font-bold uppercase tracking-wide text-orange-400">Atenção</strong>
+                              <span class="text-sm opacity-90">{{ message }}</span>
                           </div>
-                          {% endif %}
-                        {% endfor %}
+                      </div>
                       {% endif %}
-                    {% endwith %}
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
 
-                    <form method="POST" enctype="multipart/form-data" class="space-y-6">
-                        <div class="bg-gray-900/50 p-6 rounded-2xl border border-gray-700">
-                            <label class="block text-white font-bold mb-3">O que você precisa hoje?</label>
+                <form method="POST" enctype="multipart/form-data" class="space-y-8" id="toolForm">
+                    
+                    <div class="relative group">
+                        <div class="flex justify-between items-end mb-3">
+                            <label class="text-white font-bold text-sm tracking-wide flex items-center gap-2">
+                                <i class="fas fa-paragraph text-gray-500"></i> Prompt de Comando
+                            </label>
                             
-                            <textarea name="text_input" rows="5" required 
-                                class="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-white focus:border-blue-500 outline-none transition" 
-                                placeholder="Descreva sua solicitação profissional para este agente..."></textarea>
-
-                            {% if tool.type in ['image', 'video', 'scanner_price', 'shopping'] %}
-                                <div class="mt-6">
-                                    <label class="block text-gray-400 text-sm mb-2">Anexar Arquivo ou Foto:</label>
-                                    <div class="relative flex flex-col items-center justify-center border-2 border-dashed border-gray-700 rounded-2xl p-8 hover:border-blue-500 transition bg-gray-900/30">
-                                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-600 mb-3"></i>
-                                        <input type="file" name="image_file" class="text-sm text-gray-500">
-                                        <p class="text-xs text-gray-500 mt-2">Arraste ou clique para selecionar</p>
-                                    </div>
-                                </div>
+                            {% if tool.example_input %}
+                            <button type="button" onclick="useExample()" class="text-xs bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 border border-indigo-500/20 px-3 py-1.5 rounded-lg transition-all flex items-center gap-2">
+                                <i class="fas fa-magic"></i>
+                                <span>Usar Exemplo Otimizado</span>
+                            </button>
+                            <script>
+                                function useExample() {
+                                    // Pega o exemplo passado pelo Python
+                                    const example = `{{ tool.example_input }}`;
+                                    const textarea = document.querySelector('textarea[name="text_input"]');
+                                    
+                                    // Efeito de digitação (opcional, mas chique)
+                                    textarea.value = "";
+                                    textarea.focus();
+                                    
+                                    let i = 0;
+                                    const speed = 10; // ms
+                                    
+                                    function typeWriter() {
+                                        if (i < example.length) {
+                                            textarea.value += example.charAt(i);
+                                            i++;
+                                            setTimeout(typeWriter, speed);
+                                        }
+                                    }
+                                    typeWriter();
+                                }
+                            </script>
                             {% endif %}
                         </div>
+                        
+                        <div class="relative">
+                            <textarea name="text_input" rows="6" required 
+                                class="w-full bg-gray-900 border border-gray-700 rounded-xl p-5 text-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-inner text-base leading-relaxed placeholder-gray-600 resize-none group-hover:border-gray-600" 
+                                placeholder="Descreva sua solicitação profissional para este agente... Se tiver dúvidas, clique no botão 'Usar Exemplo' acima."></textarea>
+                            
+                            <div class="absolute bottom-3 right-3 text-gray-600 text-xs pointer-events-none">
+                                <i class="fab fa-markdown"></i> Markdown Supported
+                            </div>
+                        </div>
 
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl text-lg shadow-lg flex items-center justify-center gap-3 transition hover:scale-[1.02]">
-                            <i class="fas fa-robot"></i>
-                            EXECUTAR AGENTE IA
-                        </button>
-                    </form>
-                </div>
+                        {% if tool.example_input %}
+                        <div class="mt-3 p-3 bg-gray-900/50 rounded-lg border border-gray-700/50 flex items-start gap-3">
+                            <div class="text-indigo-500 mt-0.5"><i class="fas fa-lightbulb"></i></div>
+                            <div>
+                                <p class="text-xs text-gray-400 font-bold mb-1">Dica de Engenharia de Prompt:</p>
+                                <p class="text-xs text-gray-500 italic">"{{ tool.example_input }}"</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if tool.type in ['image', 'video', 'scanner_price', 'shopping'] %}
+                        <div class="space-y-3">
+                            <label class="block text-white font-bold text-sm tracking-wide">
+                                <i class="fas fa-paperclip text-gray-500"></i> Material de Apoio
+                            </label>
+                            
+                            <label class="relative flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-600 rounded-2xl cursor-pointer bg-gray-900/50 hover:bg-gray-900 hover:border-blue-500 transition-all group overflow-hidden">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6 relative z-10">
+                                    <div class="mb-3 p-3 bg-gray-800 rounded-full group-hover:scale-110 transition-transform duration-300">
+                                        <i class="fas fa-cloud-upload-alt text-2xl text-blue-400"></i>
+                                    </div>
+                                    <p class="mb-1 text-sm text-gray-400"><span class="font-bold text-white">Clique para enviar</span> ou arraste</p>
+                                    <p class="text-xs text-gray-500">PNG, JPG, PDF (MAX. 50MB)</p>
+                                </div>
+                                <input type="file" name="image_file" class="hidden" onchange="document.getElementById('fileName').innerText = this.files[0].name">
+                                
+                                <div id="fileName" class="absolute bottom-2 text-xs text-blue-400 font-bold"></div>
+                            </label>
+                        </div>
+                    {% endif %}
+
+                    <button type="submit" onclick="this.innerHTML='<i class=\'fas fa-circle-notch fa-spin\'></i> PROCESSANDO...'; this.classList.add('opacity-75', 'cursor-wait');" 
+                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black py-5 rounded-2xl text-lg shadow-lg shadow-blue-900/30 flex items-center justify-center gap-3 transition-all transform hover:translate-y-[-2px] active:translate-y-[1px]">
+                        <i class="fas fa-robot"></i>
+                        <span>EXECUTAR AGENTE {{ tool.name|upper }}</span>
+                    </button>
+                    
+                    <p class="text-center text-[10px] text-gray-600 uppercase tracking-widest">
+                        Processado por Rendey LLC Enterprise Cloud
+                    </p>
+                </form>
             </div>
 
             {% if report and report.status == 'COMPLETED' %}
             
-                {# Lógica Jinja2 para separar HTML do Link de Vídeo #}
+                {# Extração segura do vídeo e HTML #}
                 {% set parts = report.ai_response.split('')[0] if parts[1] else '' %}
 
-                <div class="bg-gray-900 rounded-3xl border border-green-500/30 shadow-2xl overflow-hidden animate-fade-in-up">
-                    <div class="p-6 bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700 flex justify-between items-center">
-                        <h2 class="text-2xl font-black text-white flex items-center gap-2">
-                            <span class="text-green-400">●</span> Análise Concluída
+                <div class="bg-gray-900 rounded-3xl border border-gray-700 shadow-2xl overflow-hidden animate-fade-in-up">
+                    
+                    <div class="p-6 bg-gray-800 border-b border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <h2 class="text-xl font-bold text-white flex items-center gap-3">
+                            <span class="flex h-3 w-3 relative">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                            </span>
+                            Análise Estratégica
                         </h2>
-                        <span class="text-xs font-bold bg-green-900/50 text-green-300 px-3 py-1 rounded-full border border-green-500/30">NVIDIA POWERED</span>
+                        
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-bold bg-indigo-900/50 text-indigo-300 px-3 py-1.5 rounded-full border border-indigo-500/30">
+                                MODEL: LLAMA-3.1-70B
+                            </span>
+                            <div class="flex gap-2">
+                                <button onclick="window.print()" class="p-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition" title="Imprimir">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                                <a href="/save_report/{{ report.id }}" class="p-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition" title="Salvar na Memória">
+                                    <i class="fas fa-save"></i>
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="p-8">
-                        <div class="flex flex-col lg:flex-row gap-8">
+                    <div class="p-8 lg:p-10">
+                        <div class="flex flex-col lg:flex-row gap-10">
                             
                             {% if video_url %}
-                            <div class="lg:w-1/3">
-                                <div onclick="openVideoModal()" class="group relative rounded-2xl overflow-hidden cursor-pointer border-2 border-indigo-500/30 shadow-2xl hover:border-indigo-400 transition-all hover:scale-[1.02]">
-                                    <img src="https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg" class="w-full h-64 object-cover opacity-80 group-hover:opacity-100 transition duration-500">
+                            <div class="lg:w-1/3 space-y-4">
+                                <div class="relative group">
+                                    <div class="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
                                     
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-                                    
-                                    <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                        <div class="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-600/50 group-hover:scale-110 transition duration-300 pl-1">
-                                            <i class="fas fa-play text-white text-2xl"></i>
+                                    <div onclick="openVideoModal()" class="relative rounded-2xl overflow-hidden cursor-pointer bg-gray-900 border border-gray-700 shadow-2xl">
+                                        <img src="https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg" class="w-full h-64 object-cover opacity-60 group-hover:opacity-100 transition duration-500 transform group-hover:scale-105">
+                                        
+                                        <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
+                                        
+                                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                            <div class="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl group-hover:scale-110 transition duration-300 pl-1">
+                                                <i class="fas fa-play text-white text-2xl drop-shadow-md"></i>
+                                            </div>
+                                            <p class="text-white font-bold mt-4 tracking-wider uppercase text-xs bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
+                                                Assistir Briefing
+                                            </p>
                                         </div>
-                                        <p class="text-white font-bold mt-4 tracking-wide uppercase text-sm">Assistir Briefing</p>
                                     </div>
                                 </div>
-                                <p class="text-center text-gray-500 text-xs mt-3">Clique para abrir o player de vídeo</p>
+                                
+                                <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700 text-center">
+                                    <p class="text-xs text-gray-400">Este vídeo foi gerado automaticamente pela IA para resumir os pontos chave.</p>
+                                </div>
                             </div>
                             {% endif %}
 
                             <div class="{{ 'lg:w-2/3' if video_url else 'w-full' }}">
-                                <div class="prose prose-invert prose-lg max-w-none text-gray-300 leading-relaxed">
-                                    {# O filtro | safe é essencial para renderizar o HTML da NVIDIA #}
+                                <div class="prose prose-invert prose-lg max-w-none 
+                                            prose-headings:text-indigo-300 prose-headings:font-bold 
+                                            prose-p:text-gray-300 prose-p:leading-relaxed
+                                            prose-strong:text-white prose-strong:font-black
+                                            prose-ul:list-disc prose-li:marker:text-indigo-500">
+                                    
+                                    {# Renderização Segura do HTML #}
                                     {{ final_html_text | safe }}
                                 </div>
                             </div>
 
                         </div>
                     </div>
+                    
+                    <div class="bg-gray-800 p-4 border-t border-gray-700 flex justify-between items-center text-xs text-gray-500">
+                        <span>ID do Relatório: #{{ report.id }}</span>
+                        <span>{{ report.date_created.strftime('%d/%m/%Y %H:%M') }}</span>
+                    </div>
                 </div>
 
             {% elif report and report.status == 'PROCESSING' %}
-                <div class="mt-8 p-12 bg-gray-800 rounded-3xl border border-gray-700 text-center">
-                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-                    <h3 class="text-xl font-bold text-white">Processando sua solicitação...</h3>
-                    <p class="text-gray-400">A IA está analisando os dados. Isso pode levar alguns segundos.</p>
+                <div class="mt-8 p-16 bg-gray-800 rounded-3xl border border-gray-700 text-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+                    
+                    <div class="relative z-10">
+                        <div class="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-6 shadow-lg shadow-blue-500/20"></div>
+                        <h3 class="text-2xl font-black text-white mb-2">Processando Inteligência...</h3>
+                        <p class="text-gray-400 max-w-md mx-auto">Nossos servidores estão analisando seus dados, cruzando referências de mercado e gerando insights.</p>
+                        
+                        <div class="mt-6 w-64 h-2 bg-gray-700 rounded-full mx-auto overflow-hidden">
+                            <div class="h-full bg-blue-500 animate-progress origin-left"></div>
+                        </div>
+                    </div>
                 </div>
             {% endif %}
 
@@ -133,20 +283,23 @@
     </div>
 </div>
 
-<div id="videoModal" class="fixed inset-0 z-[9999] hidden items-center justify-center bg-black/90 backdrop-blur-md transition-opacity duration-300 opacity-0 pointer-events-none">
-    <div class="relative w-full max-w-5xl p-4">
-        <div class="relative bg-gray-900 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform transition-all scale-95" id="modalContent">
+<div id="videoModal" class="fixed inset-0 z-[9999] hidden items-center justify-center bg-black/95 backdrop-blur-xl transition-all duration-500 opacity-0 pointer-events-none">
+    <div class="relative w-full max-w-6xl p-4">
+        <div class="relative bg-gray-900 rounded-2xl shadow-2xl shadow-indigo-500/10 border border-gray-700 overflow-hidden transform transition-all scale-95 duration-300" id="modalContent">
             
-            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900">
-                <h3 class="text-white font-bold flex items-center gap-2">
-                    <i class="fas fa-video text-indigo-500"></i> Briefing do Consultor IA
+            <div class="flex justify-between items-center p-5 border-b border-gray-800 bg-gray-900">
+                <h3 class="text-white font-bold flex items-center gap-3 text-lg">
+                    <i class="fas fa-film text-indigo-500"></i> 
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
+                        Briefing Executivo IA
+                    </span>
                 </h3>
-                <button onclick="closeVideoModal()" class="text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg p-2 transition">
-                    <i class="fas fa-times text-xl"></i>
+                <button onclick="closeVideoModal()" class="group bg-gray-800 hover:bg-red-500/20 p-2 rounded-lg transition-all">
+                    <i class="fas fa-times text-gray-400 group-hover:text-red-400 text-xl"></i>
                 </button>
             </div>
 
-            <div class="aspect-video w-full bg-black">
+            <div class="aspect-video w-full bg-black relative">
                 <video id="modalVideoPlayer" class="w-full h-full" controls controlsList="nodownload">
                     {% if video_url %}
                     <source src="{{ video_url }}" type="video/mp4">
@@ -165,51 +318,49 @@
 
     function openVideoModal() {
         if(!modal) return;
-        // Mostra o fundo
         modal.classList.remove('hidden', 'pointer-events-none');
-        // Pequeno delay para permitir a transição de opacidade
         setTimeout(() => {
             modal.classList.remove('opacity-0');
             modalContent.classList.remove('scale-95');
             modalContent.classList.add('scale-100');
         }, 10);
-        
-        // Toca o vídeo
         if(videoPlayer) {
             videoPlayer.currentTime = 0;
-            videoPlayer.play().catch(e => console.log("Autoplay bloqueado pelo navegador"));
+            videoPlayer.play().catch(e => console.log("Autoplay bloqueado"));
         }
     }
 
     function closeVideoModal() {
         if(!modal) return;
-        // Efeito de saída
         modal.classList.add('opacity-0');
         modalContent.classList.remove('scale-100');
         modalContent.classList.add('scale-95');
-        
-        // Pausa o vídeo imediatamente
         if(videoPlayer) videoPlayer.pause();
-
-        // Esconde o elemento depois da animação (300ms)
         setTimeout(() => {
             modal.classList.add('hidden', 'pointer-events-none');
         }, 300);
     }
 
-    // Fecha ao clicar fora (no fundo escuro)
     modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            closeVideoModal();
-        }
+        if (e.target === modal) closeVideoModal();
     });
 
-    // Fecha com tecla ESC
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-            closeVideoModal();
-        }
+        if (e.key === 'Escape') closeVideoModal();
     });
 </script>
 
+<style>
+    @keyframes progress {
+        0% { width: 0%; }
+        50% { width: 70%; }
+        100% { width: 100%; }
+    }
+    .animate-progress {
+        animation: progress 2s infinite ease-in-out;
+    }
+    .cursor-wait {
+        cursor: wait;
+    }
+</style>
 {% endblock %}
