@@ -686,17 +686,24 @@ def home():
     
     # Se for um visitante novo ou deslogado, mostramos a Landing Page (Index)
     return render_template('index.html')
+# --- ROTA PRINCIPAL UNIFICADA ---
 @app.route('/')
 def index():
+    # Se o usuário já estiver logado, ele vai direto para o Dashboard
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
     # Preços exatos conforme sua imagem de pricing
-    precos = {
-        'starter': 18.73,
-        'pro': 31.93,
-        'agency': 94.83
+    precos_reais = {
+        'starter': '18.73',
+        'pro': '31.93',
+        'agency': '94.83'
     }
-    return render_template('index.html', precos=precos)
+    
+    # Renderiza a Landing Page para visitantes
+    return render_template('index.html', precos=precos_reais)
 
-# Opcional: Criar um redirecionamento caso ele digite /index manualmente
+# Redirecionamento amigável para evitar erro caso digitem /index
 @app.route('/index')
 def index_redirect():
     return redirect(url_for('index'))
