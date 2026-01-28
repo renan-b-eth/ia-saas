@@ -126,124 +126,174 @@ class Document(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 def worker_video_tutorial(app_obj, report_id, user_id):
+    """
+    WORKER HÍBRIDO PRO:
+    1. CÉREBRO (NVIDIA): Gera roteiro estratégico e análise de mercado.
+    2. VOZ (Edge-TTS): Narração neural profissional.
+    3. CORPO (MoviePy): Renderização de vídeo local (100% gratuito e estável).
+    """
     with app_obj.app_context():
+        # Imports locais (para economizar memória no boot)
+        from moviepy.editor import ImageClip, AudioFileClip, CompositeVideoClip, TextClip
+        from openai import OpenAI
+        import edge_tts
+        import asyncio
+        import requests
+        import os
+        import json
         import datetime
-        import shutil 
-        import time
-        
+
         def log_status(msg):
             timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-            print(f"[{timestamp}] 🛠️ [WORKER TANK] {msg}", flush=True)
+            print(f"[{timestamp}] 🧠 [NVIDIA + LOCAL] {msg}", flush=True)
 
         try:
-            from gradio_client import Client, handle_file
-            import edge_tts
-            import asyncio
-            import os
-
-            HF_TOKEN = os.getenv("HF_TOKEN")
-            
-            log_status(f"🚀 INICIANDO REPORT: {report_id} (Modo 12 Mirrors)")
+            log_status(f"🚀 INICIANDO REPORT: {report_id}")
             report = Report.query.get(report_id)
+            
+            # --- PASSO 1: CÉREBRO NVIDIA (Llama 3.1 70B) ---
+            # Usa a chave que você colocou nos Secrets
+            api_key = os.getenv("NVIDIA_API_KEY")
+            
+            if not api_key:
+                raise Exception("ERRO: Configure a NVIDIA_API_KEY nos Secrets do Hugging Face!")
 
-            # --- PASSO 1: ÁUDIO ---
-            log_status("🎙️ [1/3] Gerando voz...")
+            client = OpenAI(
+                base_url="https://integrate.api.nvidia.com/v1",
+                api_key=api_key
+            )
+
+            log_status("📡 Conectando ao Supercomputador NVIDIA...")
+
+            # Prompt Especializado para Consultoria
+            prompt_sistema = """
+            Você é um Consultor Estratégico de Startups Sênior.
+            Analise os dados da ferramenta e gere um JSON estrito contendo:
+            1. 'roteiro_curto': Um texto de no máximo 30 segundos, falado em primeira pessoa, elogiando a ferramenta e convidando para ler o relatório.
+            2. 'analise_html': Um relatório HTML moderno (use classes Tailwind se possível ou CSS inline bonito). Inclua:
+               - 🎯 Veredito do Especialista
+               - 🚀 3 Pontos de Crescimento
+               - ⚠️ 1 Ponto de Atenção
+            """
+
+            prompt_usuario = f"""
+            Ferramenta: {report.tool_name}
+            Link: {report.tool_url}
+            Descrição: {report.tool_description}
+            """
+
+            completion = client.chat.completions.create(
+                model="meta/llama-3.1-70b-instruct", # O modelo poderoso que escolhemos
+                messages=[
+                    {"role": "system", "content": prompt_sistema},
+                    {"role": "user", "content": prompt_usuario}
+                ],
+                temperature=0.6,
+                top_p=1,
+                max_tokens=2048
+            )
+
+            # Limpeza e Parsing do JSON da NVIDIA
+            texto_raw = completion.choices[0].message.content
+            # Remove crases de código se a IA mandar
+            texto_limpo = texto_raw.replace("```json", "").replace("```", "").strip()
+            
+            try:
+                dados_ia = json.loads(texto_limpo)
+                roteiro = dados_ia.get('roteiro_curto', "Olá! Sua análise está pronta abaixo.")
+                html_analise = dados_ia.get('analise_html', "<p>Confira a análise detalhada.</p>")
+            except:
+                # Fallback caso a IA não mande JSON perfeito
+                roteiro = "Olá! Sou o consultor da Rendey. Preparei uma análise estratégica completa sobre sua ferramenta. Confira os dados detalhados logo abaixo deste vídeo."
+                html_analise = f"<div class='prose'>{texto_raw}</div>"
+
+            log_status("✅ Roteiro e Análise gerados pela NVIDIA.")
+
+            # --- PASSO 2: VOZ PROFISSIONAL (Edge-TTS) ---
+            log_status("🎙️ Gerando narração neural...")
             audio_filename = f"audio_{report_id}.mp3"
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], audio_filename)
             
             async def generate_voice():
-                texto = f"Olá! Sou o consultor da Rendey. Analisei os dados de {report.tool_name} e preparei sua estratégia."
-                communicate = edge_tts.Communicate(texto, "pt-BR-AntonioNeural")
+                # Voz masculina séria e confiável
+                communicate = edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural")
                 await communicate.save(audio_path)
             
             asyncio.run(generate_voice())
 
-            # --- PASSO 2: A LISTA DE GUERRA (12 MIRRORS) ---
-            # O código vai tentar um por um.
-            mirrors = [
-                "devxpy/wav2lip",           # 1. O Original (Mais provável)
-                "camenduru/Wav2Lip",        # 2. Clone muito estável
-                "guoqcn/Wav2Lip",           # 3. Clássico
-                "daanelson/Wav2Lip",        # 4. Alternativa comum
-                "vumichien/Wav2Lip",        # 5. Outro dev famoso
-                "sepia/Wav2Lip",            # 6. Versão leve
-                "ritwikraha/Wav2Lip",       # 7. Backup
-                "ShuhongChen/Wav2Lip",      # 8. Acadêmico
-                "kadirnar/Wav2Lip",         # 9. Demo simples
-                "on1onway/Wav2Lip",         # 10. Alternativo
-                "ajay-sainy/Wav2Lip",       # 11. Clone recente
-                "suv/Wav2Lip-GFPGAN"        # 12. Com melhoria de rosto (se funcionar, é top)
-            ]
+            # --- PASSO 3: VÍDEO LOCAL (MoviePy - Sem Mirrors Falhos) ---
+            log_status("🎬 Renderizando vídeo na CPU local...")
             
-            result = None
-            last_error = ""
-            foto_url = "https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg"
-
-            for i, mirror in enumerate(mirrors):
-                try:
-                    log_status(f"💣 Tentativa {i+1}/12: Conectando ao {mirror} ...")
-                    
-                    # Token é vital para evitar erro 403
-                    client = Client(mirror, hf_token=HF_TOKEN)
-                    
-                    # fn_index=0 é o padrão universal para Wav2Lip
-                    result = client.predict(
-                        handle_file(foto_url),
-                        handle_file(audio_path),
-                        fn_index=0
-                    )
-                    
-                    log_status(f"✅ SUCESSO! O mirror {mirror} funcionou!")
-                    break # Sai do loop imediatamente
-                    
-                except Exception as e:
-                    # Se falhar, só avisa e parte pro próximo
-                    log_status(f"❌ Falha no {mirror}. Tentando próximo... (Erro: {str(e)[:50]}...)")
-                    last_error = str(e)
-                    time.sleep(1) # Pausa dramática de 1s para o servidor não bloquear
-            
-            if not result:
-                log_status("☠️ TODOS OS 12 MIRRORS FALHARAM.")
-                raise Exception(f"Esgotamos os 12 mirrors. Último erro: {last_error}")
-
-            # --- PASSO 3: BAIXAR E SALVAR (Download Local) ---
-            log_status("💾 Salvando vídeo no servidor local...")
-            
-            # Tratamento robusto do retorno
-            if isinstance(result, (list, tuple)):
-                # Pega o primeiro caminho de arquivo válido
-                caminho_temp = next((x for x in result if isinstance(x, str) and x.endswith('.mp4')), result[0])
-            elif isinstance(result, dict):
-                caminho_temp = result.get('video') or result.get('value')
-            else:
-                caminho_temp = result
-
             video_filename = f"video_final_{report_id}.mp4"
             video_path_final = os.path.join(app_obj.config['UPLOAD_FOLDER'], video_filename)
+            foto_base = os.path.join(app_obj.config['UPLOAD_FOLDER'], "consultor_base.jpg")
 
-            # Move para a pasta do seu site
-            shutil.move(caminho_temp, video_path_final)
+            # Baixa a foto do consultor (Cache)
+            if not os.path.exists(foto_base):
+                 r = requests.get("https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg")
+                 with open(foto_base, 'wb') as f: f.write(r.content)
+
+            # Montagem do Vídeo
+            # 1. Carrega áudio
+            audio_clip = AudioFileClip(audio_path)
+            
+            # 2. Cria clipe de imagem com a duração do áudio
+            image_clip = ImageClip(foto_base).set_duration(audio_clip.duration)
+            
+            # 3. Junta áudio e imagem
+            final_clip = image_clip.set_audio(audio_clip)
+            final_clip = final_clip.set_fps(24)
+
+            # 4. Renderiza (Preset ultrafast para não travar o servidor)
+            final_clip.write_videofile(
+                video_path_final, 
+                codec='libx264', 
+                audio_codec='aac', 
+                preset='ultrafast',
+                logger=None # Remove logs excessivos do ffmpeg
+            )
+
+            # --- PASSO 4: FINALIZAÇÃO ---
             video_url_publica = f"/static/uploads/{video_filename}"
             
-            html_video = f"""
-            <div class='video-container-premium my-6'>
-                <video width='100%' controls autoplay class='rounded-[40px] border-2 border-indigo-600 shadow-2xl'>
-                    <source src='{video_url_publica}' type='video/mp4'>
-                </video>
+            # HTML Final com Design "NVIDIA Style"
+            html_completo = f"""
+            <div class="bg-gray-900 border border-green-500/50 rounded-2xl p-6 shadow-2xl mb-8">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="bg-green-500 text-black text-xs font-bold px-2 py-1 rounded">NVIDIA POWERED</span>
+                    <h2 class="text-white text-lg font-bold">Análise do Consultor IA</h2>
+                </div>
+                
+                <div class="relative w-full max-w-2xl mx-auto rounded-xl overflow-hidden border-2 border-gray-700 shadow-lg">
+                    <video width="100%" controls autoplay poster="https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg">
+                        <source src="{video_url_publica}" type="video/mp4">
+                        Seu navegador não suporta vídeos.
+                    </video>
+                </div>
+
+                <div class="mt-8 text-gray-300 prose prose-invert max-w-none">
+                    {html_analise}
+                </div>
             </div>
             """
-            report.ai_response += html_video
+            
+            report.ai_response = html_completo
             report.status = "COMPLETED"
             db.session.commit()
-            log_status(f"🏆 VITÓRIA FINAL! Vídeo salvo em {video_path_final}")
+            
+            # Limpeza de arquivos temporários
+            try: os.remove(audio_path)
+            except: pass
+            
+            log_status(f"🏆 SUCESSO! Relatório {report_id} finalizado.")
 
         except Exception as e:
             error_msg = str(e)
-            log_status(f"💥 ERRO GERAL: {error_msg}")
+            log_status(f"💥 ERRO FATAL: {error_msg}")
             report = Report.query.get(report_id)
             if report:
                 report.status = "ERROR"
-                report.ai_response = f"<div class='text-red-500'>Erro: {error_msg}</div>" + report.ai_response
+                report.ai_response = f"<div class='p-4 bg-red-900 text-red-200 rounded'>Erro: {error_msg}</div>"
                 db.session.commit()
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
