@@ -7,7 +7,7 @@ import stripe
 from datetime import datetime, timedelta
 import requests
 from flask_mail import Mail, Message
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, send_file
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, send_file, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -38,6 +38,17 @@ except Exception as e:
 
 # --- 1. CONFIGURAÇÕES GERAIS ---
 app = Flask(__name__)
+@app.route('/static/uploads/<path:filename>')
+def serve_uploads_folder(filename):
+    # Força o Flask a ler da pasta configurada no UPLOAD_FOLDER (que é /tmp/...)
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+# Use /tmp no Hugging Face pois é o único lugar com permissão de escrita garantida
+UPLOAD_FOLDER = '/tmp/uploads' 
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 processing_semaphore = threading.BoundedSemaphore(value=1)
 app.secret_key = os.getenv("SECRET_KEY", "segredo_master_renan_saas_2026")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
