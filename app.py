@@ -129,11 +129,12 @@ class Document(db.Model):
 
 def worker_video_tutorial(app_obj, report_id, user_id):
     """
-    WORKER BLINDADO:
-    1. Limpeza de Texto: Remove lixo de código ('\n +') que a IA manda.
-    2. Compatibilidade de Vídeo: Força pixel format yuv420p para rodar no Chrome/Celular.
+    WORKER ENTERPRISE V2:
+    - Vídeo: Força compatibilidade yuv420p (Fix do 00:00).
+    - Texto: Limpeza agressiva de artefatos de código do JSON.
     """
     with app_obj.app_context():
+        # Imports essenciais
         from moviepy.editor import ImageClip, AudioFileClip
         from openai import OpenAI
         import edge_tts
@@ -142,11 +143,11 @@ def worker_video_tutorial(app_obj, report_id, user_id):
         import os
         import json
         import datetime
-        import re # Importante para a limpeza avançada
+        import re # Para limpeza avançada com Regex
 
         def log_status(msg):
             timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-            print(f"[{timestamp}] 🛠️ [FIX FINAL] {msg}", flush=True)
+            print(f"[{timestamp}] 🏢 [ENTERPRISE FIX] {msg}", flush=True)
 
         try:
             log_status(f"🚀 INICIANDO REPORT: {report_id}")
@@ -156,56 +157,65 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             api_key = os.getenv("NVIDIA_API_KEY")
             client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
 
-            # Prompt ajustado para evitar que ele mande código
+            # Prompt reforçado para evitar lixo de código
             prompt_sistema = """
-            Você é um Consultor Sênior. Gere um JSON com:
-            1. 'roteiro_curto': Texto narrativo (max 40s).
-            2. 'analise_html': HTML puro e pronto.
-            IMPORTANTE: Entregue o texto LIMPO. NÃO use concatenação de string como "texto" + "texto".
+            Você é um Consultor Estratégico Sênior (MBB level).
+            Gere um JSON estrito com:
+            1. 'roteiro_curto': Texto narrativo para o vídeo (max 40s).
+            2. 'analise_html': Um relatório HTML estruturado, profissional e direto ao ponto. Use tags <h3>, <p>, <ul> e <li>.
+            CRÍTICO: O campo 'analise_html' deve ser uma string única e limpa. NÃO use concatenação de strings Python (ex: não faça "texto" + "texto"). NÃO inclua quebras de linha literais (\n) no meio das frases HTML.
             """
 
-            prompt_usuario = f"Analise: {report.tool_name} - {report.tool_description}"
+            prompt_usuario = f"Analise a ferramenta: {report.tool_name}\nDescrição: {report.tool_description}"
 
             completion = client.chat.completions.create(
                 model="meta/llama-3.1-70b-instruct",
                 messages=[{"role": "system", "content": prompt_sistema}, {"role": "user", "content": prompt_usuario}],
-                temperature=0.5,
+                temperature=0.4, # Temperatura mais baixa para ser mais "quadrado" e correto
                 top_p=1,
-                max_tokens=2048
+                max_tokens=2500
             )
 
             texto_raw = completion.choices[0].message.content
-            # Limpeza inicial do Markdown JSON
-            texto_limpo = texto_raw.replace("```json", "").replace("```", "").strip()
+            # Remove blocos de markdown se houver
+            texto_limpo_inicial = texto_raw.replace("```json", "").replace("```", "").strip()
             
+            roteiro = "Análise estratégica concluída."
+            html_final_limpo = ""
+
             try:
-                dados_ia = json.loads(texto_limpo)
-                roteiro = dados_ia.get('roteiro_curto', "Análise pronta.")
+                dados_ia = json.loads(texto_limpo_inicial)
+                roteiro = dados_ia.get('roteiro_curto', roteiro)
                 html_sujo = dados_ia.get('analise_html', "")
-                
-                # --- A LIMPEZA MÁGICA (Remove a sujeira da imagem) ---
-                # Troca '\n" + "' por espaço e remove barras invertidas soltas
-                html_analise = html_sujo.replace('"\n + "', ' ').replace('\\n', '<br>').replace(' + ', ' ')
-                # Remove aspas que sobram nas pontas
-                html_analise = html_analise.strip('"').strip("'")
-                
-            except:
-                roteiro = "Análise concluída. Veja os detalhes abaixo."
-                # Se falhar o JSON, usa o texto puro limpando o código
-                html_analise = f"<div class='prose'>{texto_raw.replace('channel', '')}</div>"
+
+                # --- LIMPEZA AGRESSIVA (Enterprise Grade) ---
+                # 1. Remove concatenação de string Python feia
+                html_final_limpo = html_sujo.replace('"\n + "', ' ')
+                html_final_limpo = html_final_limpo.replace('" + "', ' ')
+                 # 2. Remove quebras de linha literais que não sejam HTML
+                html_final_limpo = html_final_limpo.replace('\\n', ' ')
+                # 3. Remove aspas duplas que sobram no início ou fim
+                html_final_limpo = html_final_limpo.strip('"')
+                # 4. Garante que tem um container
+                if not html_final_limpo.startswith('<div'):
+                     html_final_limpo = f"<div>{html_final_limpo}</div>"
+
+            except json.JSONDecodeError:
+                log_status("⚠️ Falha no JSON. Usando fallback de texto puro.")
+                # Se o JSON falhar, limpa o texto raw e envelopa em HTML
+                clean_raw = texto_raw.replace('"', '').replace(' + ', ' ').replace('\\n', '<br>')
+                html_final_limpo = f"<div class='prose prose-invert'><h3>Análise Bruta</h3><p>{clean_raw}</p></div>"
 
             # --- 2. VOZ ---
             log_status("🎙️ Gerando áudio...")
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"audio_{report_id}.mp3")
             asyncio.run(edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural").save(audio_path))
 
-            # --- 3. VÍDEO (A CORREÇÃO DO PLAY) ---
-            log_status("🎬 Renderizando vídeo compatível...")
-            
+            # --- 3. VÍDEO (FIX DO 00:00) ---
+            log_status("🎬 Renderizando vídeo compatível (yuv420p)...")
             video_filename = f"video_final_{report_id}.mp4"
             video_path_final = os.path.join(app_obj.config['UPLOAD_FOLDER'], video_filename)
             foto_base = os.path.join(app_obj.config['UPLOAD_FOLDER'], "consultor_base.jpg")
-            # Caminho seguro para o arquivo temporário
             temp_audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"temp_audio_{report_id}.m4a")
 
             if not os.path.exists(foto_base):
@@ -213,47 +223,39 @@ def worker_video_tutorial(app_obj, report_id, user_id):
                  with open(foto_base, 'wb') as f: f.write(r.content)
 
             audio_clip = AudioFileClip(audio_path)
-            final_clip = ImageClip(foto_base).set_duration(audio_clip.duration).set_audio(audio_clip).set_fps(24)
+            # Duração mínima de 5s para evitar bugs em vídeos muito curtos
+            duration = max(5, audio_clip.duration)
+            final_clip = ImageClip(foto_base).set_duration(duration).set_audio(audio_clip).set_fps(24)
 
             # O SEGREDO DO PLAY: ffmpeg_params=['-pix_fmt', 'yuv420p']
-            # Sem isso, o Chrome não toca o vídeo!
             final_clip.write_videofile(
                 video_path_final, 
                 codec='libx264', 
                 audio_codec='aac', 
                 preset='ultrafast',
-                ffmpeg_params=['-pix_fmt', 'yuv420p'], # <--- ISSO CONSERTA O VÍDEO 00:00
+                ffmpeg_params=['-pix_fmt', 'yuv420p'], # <--- CRÍTICO PARA FUNCIONAR NO CHROME
                 temp_audiofile=temp_audio_path,
                 remove_temp=True,
                 logger=None
             )
 
-            # --- 4. SALVAR ---
-            video_url = f"/static/uploads/{video_filename}"
+            # --- 4. SALVAR TUDO NO BANCO ---
+            # Agora salvamos APENAS o HTML limpo e o Caminho do vídeo no banco.
+            # O HTML do layout vai ficar no template Jinja2, não aqui.
             
-            html_final = f"""
-            <div class="bg-gray-900 rounded-xl p-6 shadow-2xl border border-indigo-500/30">
-                <h2 class="text-white font-bold text-xl mb-4">🎥 Análise Estratégica</h2>
-                <div class="mb-6 rounded-lg overflow-hidden border border-gray-700 aspect-video">
-                    <video controls class="w-full h-full object-cover">
-                        <source src="{video_url}" type="video/mp4">
-                        Seu navegador não suporta vídeos.
-                    </video>
-                </div>
-                <div class="prose prose-invert max-w-none text-gray-300">
-                    {html_analise}
-                </div>
-            </div>
-            """
+            report.ai_response = html_final_limpo # Salva só o HTML do texto
+            # Usamos um campo truque ou concatenamos para salvar a URL do vídeo
+            # Vamos salvar a URL do vídeo no final do HTML num formato oculto para o front ler
+            report.ai_response += f''
             
-            report.ai_response = html_final
             report.status = "COMPLETED"
             db.session.commit()
-            log_status("🏆 SUCESSO TOTAL!")
+            log_status("🏆 SUCESSO ENTERPRISE!")
 
         except Exception as e:
             log_status(f"💥 ERRO: {str(e)}")
             report.status = "ERROR"
+            report.ai_response = f"<p class='text-red-400'>Erro na geração: {str(e)}</p>"
             db.session.commit()
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
