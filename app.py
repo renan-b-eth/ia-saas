@@ -154,12 +154,12 @@ class Document(db.Model):
 
 def worker_video_tutorial(app_obj, report_id, user_id):
     """
-    WORKER V4 (FIX PERMISSION DENIED):
-    - Força arquivos temporários na pasta /tmp para evitar erro de permissão no Hugging Face.
-    - Mantém a estratégia Download First.
+    WORKER V5 (LINK HTML DIRETO + FIX PERMISSION):
+    - Gera o vídeo usando pasta temporária correta (/tmp).
+    - Salva na memória.
+    - Retorna um HTML PRONTO com botão de download (funciona em qualquer layout).
     """
     with app_obj.app_context():
-        # Imports locais
         from moviepy.editor import ImageClip, AudioFileClip
         from openai import OpenAI
         import edge_tts
@@ -176,63 +176,42 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             log_status(f"🚀 INICIANDO VÍDEO PARA REPORT: {report_id}")
             report = Report.query.get(report_id)
             
-            # --- 1. GERAÇÃO DO ROTEIRO ---
+            # 1. Roteiro (Gera o texto)
             api_key = os.getenv("NVIDIA_API_KEY")
             client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
-
-            prompt_sistema = """
-            Você é um Diretor de Marketing especialista em Vídeos Virais (Reels/TikTok).
-            Sua missão: Criar um roteiro curto e impactante baseado na entrada do usuário.
-            Regra 1: Responda APENAS com o texto que será falado pelo locutor.
-            Regra 2: Não use marcações de cena. Apenas o texto falado.
-            Regra 3: Máximo de 40 segundos de fala.
-            """
-            
-            # Pega o input ou a descrição da ferramenta
+            prompt_sistema = "Você é um Diretor de Marketing. Crie um roteiro curto (max 40s) para vídeo viral. Responda APENAS o texto falado."
             texto_base = report.input_data if report.input_data else report.tool_description
-            prompt_usuario = f"Crie um roteiro viral sobre: {texto_base}"
-
+            
             completion = client.chat.completions.create(
                 model="meta/llama-3.1-70b-instruct",
-                messages=[{"role": "system", "content": prompt_sistema}, {"role": "user", "content": prompt_usuario}],
-                temperature=0.7,
-                max_tokens=800
+                messages=[{"role": "system", "content": prompt_sistema}, {"role": "user", "content": f"Roteiro sobre: {texto_base}"}],
+                temperature=0.7, max_tokens=800
             )
-            
             roteiro = completion.choices[0].message.content.strip()
             log_status("📝 Roteiro gerado.")
 
-            # --- 2. GERAÇÃO DE ÁUDIO ---
-            # Define caminhos EXPLICITAMENTE na pasta configurada (/tmp)
+            # 2. Áudio (Cria o som)
             upload_folder = app_obj.config['UPLOAD_FOLDER']
-            
             audio_path = os.path.join(upload_folder, f"audio_{report_id}.mp3")
-            
-            # Voz masculina pt-BR impactante
             asyncio.run(edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural").save(audio_path))
 
-            # --- 3. RENDERIZAÇÃO DE VÍDEO ---
-            log_status("🎬 Renderizando MP4...")
-            
+            # 3. Renderização de Vídeo (COM O FIX DE PERMISSÃO)
             video_filename = f"video_viral_{report_id}.mp4"
             video_path_final = os.path.join(upload_folder, video_filename)
             foto_base = os.path.join(upload_folder, "consultor_base.jpg")
             
-            # [FIX CRÍTICO 1] Definimos onde o arquivo temporário vai ficar (na pasta /tmp)
+            # IMPORTANTE: Caminho explícito para o temp de áudio na pasta /tmp
             temp_audio_path = os.path.join(upload_folder, f"temp_audio_{report_id}.m4a")
 
-            # Garante que a imagem base existe
             if not os.path.exists(foto_base):
                  r = requests.get("https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg")
                  with open(foto_base, 'wb') as f: f.write(r.content)
 
-            # Montagem
+            log_status("🎬 Renderizando MP4...")
             audio_clip = AudioFileClip(audio_path)
             duration = max(5, audio_clip.duration)
-            
             final_clip = ImageClip(foto_base).set_duration(duration).set_audio(audio_clip).set_fps(24)
             
-            # Escreve o arquivo final
             final_clip.write_videofile(
                 video_path_final, 
                 codec='libx264', 
@@ -240,38 +219,55 @@ def worker_video_tutorial(app_obj, report_id, user_id):
                 preset='ultrafast', 
                 ffmpeg_params=['-pix_fmt', 'yuv420p'], 
                 
-                # --- [FIX CRÍTICO 2] AQUI ESTÁ A CORREÇÃO DO ERRO ---
-                temp_audiofile=temp_audio_path,  # Força o temp a ir para /tmp
-                remove_temp=True,                # Apaga o temp depois
-                # ----------------------------------------------------
-                
-                logger=None # Desativa logs do MoviePy para evitar travamento de I/O
+                # FIX CRÍTICO MANTIDO AQUI:
+                temp_audiofile=temp_audio_path, 
+                remove_temp=True, 
+                logger=None
             )
 
-            # --- 4. SALVAR NA MEMÓRIA ---
-            log_status("💾 Salvando na Memória...")
+            # 4. Salvar na Memória (Knowledge Base)
             try:
                 new_doc = Document(
                     user_id=user_id,
-                    title=f"🎬 Roteiro: {report.tool_name} (#{report.id})",
-                    content=f"ROTEIRO DE VÍDEO GERADO:\n\n{roteiro}\n\n[ARQUIVO DE VÍDEO GERADO: {video_filename}]",
+                    title=f"🎬 Vídeo Gerado (#{report_id})",
+                    content=f"Roteiro:\n{roteiro}\n\nArquivo: {video_filename}",
                     file_type='video_script'
                 )
                 db.session.add(new_doc)
                 db.session.commit()
-            except Exception as e_db:
-                log_status(f"⚠️ Erro ao salvar DB: {e_db}")
+            except: pass
 
-            # --- 5. FINALIZAÇÃO ---
-            report.ai_response = f"VIDEO_FILENAME:{video_filename}|||ROTEIRO:{roteiro}"
+            # --- 5. A SOLUÇÃO: HTML GERADO NO BACKEND ---
+            # Isso cria o botão direto na resposta, sem depender do frontend interpretar códigos
+            botao_html = f"""
+            <div style="background:#111827; padding:40px; border-radius:24px; text-align:center; border:1px solid #374151; margin-top:20px;">
+                <div style="font-size: 50px; margin-bottom: 20px;">🎥</div>
+                <h2 style="color:#fff; margin-bottom:10px; font-family:sans-serif;">Vídeo Renderizado com Sucesso!</h2>
+                <p style="color:#9CA3AF; margin-bottom:30px; font-family:sans-serif;">Seu viral está pronto. Clique no botão abaixo para baixar o arquivo MP4.</p>
+                
+                <a href="/download_video/{video_filename}" target="_blank" 
+                   style="background: linear-gradient(to right, #2563EB, #4F46E5); color:white; padding:18px 40px; text-decoration:none; border-radius:12px; font-weight:bold; font-size:18px; display:inline-block; box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);">
+                   ⬇️ BAIXAR VÍDEO AGORA
+                </a>
+                
+                <hr style="border-color:#374151; margin:40px 0;">
+                
+                <div style="text-align:left; color:#D1D5DB; background:#1F2937; padding:20px; border-radius:12px; border:1px solid #374151;">
+                    <strong style="color:#60A5FA; text-transform:uppercase; font-size:12px; letter-spacing:1px;">Roteiro Gerado:</strong><br><br>
+                    <em style="line-height:1.6;">"{roteiro}"</em>
+                </div>
+            </div>
+            """
+            
+            report.ai_response = botao_html
             report.status = "COMPLETED"
             db.session.commit()
-            log_status("🏆 SUCESSO! VÍDEO PRONTO.")
+            log_status("🏆 SUCESSO! HTML ENVIADO.")
 
         except Exception as e:
-            log_status(f"💥 ERRO CRÍTICO: {str(e)}")
+            log_status(f"💥 ERRO: {str(e)}")
             report.status = "ERROR"
-            report.ai_response = f"Erro técnico na renderização: {str(e)}"
+            report.ai_response = f"Erro técnico: {str(e)}"
             db.session.commit()
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
