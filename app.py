@@ -129,9 +129,9 @@ class Document(db.Model):
 
 def worker_video_tutorial(app_obj, report_id, user_id):
     """
-    WORKER FINAL:
-    - Correção de Texto: Remove lixo de código ('\n +') da NVIDIA.
-    - Correção de Vídeo: Força formato yuv420p para rodar no Chrome/Mobile.
+    WORKER BLINDADO:
+    1. Limpeza de Texto: Remove lixo de código ('\n +') que a IA manda.
+    2. Compatibilidade de Vídeo: Força pixel format yuv420p para rodar no Chrome/Celular.
     """
     with app_obj.app_context():
         from moviepy.editor import ImageClip, AudioFileClip
@@ -142,7 +142,7 @@ def worker_video_tutorial(app_obj, report_id, user_id):
         import os
         import json
         import datetime
-        import re # Importante para limpar o texto
+        import re # Importante para a limpeza avançada
 
         def log_status(msg):
             timestamp = datetime.datetime.now().strftime("%H:%M:%S")
@@ -156,11 +156,12 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             api_key = os.getenv("NVIDIA_API_KEY")
             client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
 
+            # Prompt ajustado para evitar que ele mande código
             prompt_sistema = """
             Você é um Consultor Sênior. Gere um JSON com:
             1. 'roteiro_curto': Texto narrativo (max 40s).
-            2. 'analise_html': HTML puro e pronto para renderizar. 
-            IMPORTANTE: NÃO use concatenação de string (ex: não faça "texto" + "texto"). Entregue o HTML limpo em uma única linha ou bloco de texto.
+            2. 'analise_html': HTML puro e pronto.
+            IMPORTANTE: Entregue o texto LIMPO. NÃO use concatenação de string como "texto" + "texto".
             """
 
             prompt_usuario = f"Analise: {report.tool_name} - {report.tool_description}"
@@ -174,7 +175,7 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             )
 
             texto_raw = completion.choices[0].message.content
-            # Limpeza bruta inicial
+            # Limpeza inicial do Markdown JSON
             texto_limpo = texto_raw.replace("```json", "").replace("```", "").strip()
             
             try:
@@ -182,27 +183,29 @@ def worker_video_tutorial(app_obj, report_id, user_id):
                 roteiro = dados_ia.get('roteiro_curto', "Análise pronta.")
                 html_sujo = dados_ia.get('analise_html', "")
                 
-                # --- A LIMPEZA MÁGICA DO HTML ---
-                # Remove padrões de código Python que apareceram na sua tela
+                # --- A LIMPEZA MÁGICA (Remove a sujeira da imagem) ---
+                # Troca '\n" + "' por espaço e remove barras invertidas soltas
                 html_analise = html_sujo.replace('"\n + "', ' ').replace('\\n', '<br>').replace(' + ', ' ')
-                # Remove aspas extras no início/fim se sobrarem
+                # Remove aspas que sobram nas pontas
                 html_analise = html_analise.strip('"').strip("'")
                 
             except:
                 roteiro = "Análise concluída. Veja os detalhes abaixo."
-                html_analise = f"<div class='prose'>{texto_raw}</div>"
+                # Se falhar o JSON, usa o texto puro limpando o código
+                html_analise = f"<div class='prose'>{texto_raw.replace('channel', '')}</div>"
 
             # --- 2. VOZ ---
             log_status("🎙️ Gerando áudio...")
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"audio_{report_id}.mp3")
             asyncio.run(edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural").save(audio_path))
 
-            # --- 3. VÍDEO (COM CORREÇÃO PARA NAVEGADOR) ---
-            log_status("🎬 Renderizando vídeo compatível com Chrome...")
+            # --- 3. VÍDEO (A CORREÇÃO DO PLAY) ---
+            log_status("🎬 Renderizando vídeo compatível...")
             
             video_filename = f"video_final_{report_id}.mp4"
             video_path_final = os.path.join(app_obj.config['UPLOAD_FOLDER'], video_filename)
             foto_base = os.path.join(app_obj.config['UPLOAD_FOLDER'], "consultor_base.jpg")
+            # Caminho seguro para o arquivo temporário
             temp_audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"temp_audio_{report_id}.m4a")
 
             if not os.path.exists(foto_base):
@@ -213,6 +216,7 @@ def worker_video_tutorial(app_obj, report_id, user_id):
             final_clip = ImageClip(foto_base).set_duration(audio_clip.duration).set_audio(audio_clip).set_fps(24)
 
             # O SEGREDO DO PLAY: ffmpeg_params=['-pix_fmt', 'yuv420p']
+            # Sem isso, o Chrome não toca o vídeo!
             final_clip.write_videofile(
                 video_path_final, 
                 codec='libx264', 
@@ -233,6 +237,7 @@ def worker_video_tutorial(app_obj, report_id, user_id):
                 <div class="mb-6 rounded-lg overflow-hidden border border-gray-700 aspect-video">
                     <video controls class="w-full h-full object-cover">
                         <source src="{video_url}" type="video/mp4">
+                        Seu navegador não suporta vídeos.
                     </video>
                 </div>
                 <div class="prose prose-invert max-w-none text-gray-300">
