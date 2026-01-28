@@ -70,16 +70,20 @@ app.config['MAIL_PASSWORD'] = '@@Dolarizandose2026'
 app.config['MAIL_DEFAULT_SENDER'] = 'contact@rendey.store'
 mail = Mail(app)
 
-@app.route('/download_video/<filename>')
+@app.route('/download_video/<path:filename>')
 @login_required
 def download_video_route(filename):
-    # Força o download como anexo
-    return send_from_directory(
-        app.config['UPLOAD_FOLDER'], 
-        filename, 
-        as_attachment=True
-    )
-
+    try:
+        # Tenta baixar da pasta temporária (/tmp)
+        return send_from_directory(
+            app.config['UPLOAD_FOLDER'], 
+            filename, 
+            as_attachment=True
+        )
+    except FileNotFoundError:
+        flash("Arquivo expirou ou não foi encontrado.", "danger")
+        return redirect('/dashboard')
+    
 def enviar_alerta_admin(usuario, motivo, input_texto):
     msg = Message(
         subject=f"🚨 BLOQUEIO DE USUÁRIO: {usuario.company_name}",

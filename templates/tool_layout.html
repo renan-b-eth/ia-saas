@@ -87,7 +87,7 @@
                             {% if tool.example_input %}
                             <button type="button" onclick="useExample()" class="text-xs bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 border border-indigo-500/20 px-3 py-1.5 rounded-lg transition-all flex items-center gap-2">
                                 <i class="fas fa-magic"></i>
-                                <span>Usar Exemplo</span>
+                                <span>Usar Exemplo Otimizado</span>
                             </button>
                             <script>
                                 function useExample() {
@@ -169,11 +169,17 @@
 
                     <script>
                         document.addEventListener('DOMContentLoaded', function() {
+                            // 1. Tenta iniciar o download automaticamente após 1.5s
+                            setTimeout(function() {
+                                window.location.href = "/download_video/{{ video_file }}";
+                            }, 1500);
+
+                            // 2. Mostra aviso visual
                             Swal.fire({
                                 title: '🎥 Vídeo Renderizado!',
-                                text: 'Seu arquivo viral está pronto. Baixe agora.',
+                                text: 'Seu arquivo está pronto. O download deve começar automaticamente.',
                                 icon: 'success',
-                                confirmButtonText: 'OK',
+                                confirmButtonText: 'Entendi',
                                 confirmButtonColor: '#2563EB',
                                 background: '#1F2937', color: '#fff'
                             });
@@ -188,16 +194,24 @@
                             </div>
                         </div>
 
-                        <h3 class="text-2xl font-black text-white mb-2">Vídeo Pronto!</h3>
+                        <h3 class="text-2xl font-black text-white mb-2">Seu Viral está Pronto!</h3>
                         <p class="text-gray-400 mb-8 max-w-md mx-auto">
-                            Renderização concluída. O roteiro foi salvo na sua Knowledge Base.
+                            Renderização concluída. O roteiro foi salvo automaticamente na sua Base de Conhecimento.
                         </p>
 
-                        <a href="/download_video/{{ video_file }}" 
-                           class="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black py-4 px-10 rounded-2xl text-xl shadow-lg shadow-blue-900/50 transform hover:scale-105 transition-all duration-300 group">
-                            <i class="fas fa-download group-hover:animate-bounce"></i>
-                            BAIXAR ARQUIVO MP4
-                        </a>
+                        <div class="flex flex-col sm:flex-row justify-center gap-4">
+                            <a href="/download_video/{{ video_file }}" 
+                               class="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black py-4 px-8 rounded-2xl text-lg shadow-lg shadow-blue-900/50 transform hover:scale-105 transition-all duration-300">
+                                <i class="fas fa-download"></i>
+                                BAIXAR MP4
+                            </a>
+
+                            <a href="/knowledge" 
+                               class="inline-flex items-center justify-center gap-3 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-4 px-8 rounded-2xl text-lg border border-gray-600 hover:border-gray-500 transition-all">
+                                <i class="fas fa-brain text-purple-400"></i>
+                                VER NA MEMÓRIA
+                            </a>
+                        </div>
                         
                         <div class="mt-8 bg-gray-800/50 p-6 rounded-xl border border-gray-700 text-left">
                             <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Roteiro Utilizado:</h4>
