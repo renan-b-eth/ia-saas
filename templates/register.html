@@ -1,103 +1,53 @@
 {% extends "base.html" %}
-
 {% block content %}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<div class="min-h-[90vh] flex flex-col items-center justify-center px-4 py-10 bg-black">
-    <div class="bg-gray-800 p-8 rounded-3xl border border-gray-700 shadow-2xl w-full max-w-lg relative overflow-hidden">
+<div class="min-h-screen flex items-center justify-center px-6 pt-20 bg-black">
+    <div class="w-full max-w-md">
         
-        <div class="absolute -top-24 -right-24 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl"></div>
-
-        <div class="text-center mb-8 relative z-10">
-            <h1 class="text-3xl font-black text-white mb-2">Seja Bem-vindo</h1>
-            <p class="text-gray-400">Ative seu Trial de 14 dias agora.</p>
+        <div id="step-1" class="space-y-8 animate__animated animate__fadeIn">
+            <h2 class="text-5xl font-black tracking-tighter leading-none text-white">IDENTIFIQUE <br> SUA LOJA.</h2>
+            <div class="space-y-4">
+                <input type="text" id="company_name" placeholder="NOME DA EMPRESA" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white font-bold outline-none focus:border-blue-600 transition">
+                <input type="url" id="maps_url" placeholder="URL DO GOOGLE MAPS" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white font-bold outline-none focus:border-blue-600 transition">
+            </div>
+            <button onclick="goToStep(2)" class="w-full bg-white text-black font-black p-5 rounded-2xl text-lg hover:bg-blue-600 hover:text-white transition-all">PRÓXIMO</button>
         </div>
 
-        <form method="POST" action="/register" class="space-y-5 relative z-10">
-            
-            <div>
-                <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Nome da Empresa</label>
-                <input type="text" name="company" required placeholder="Ex: Barberia Prime"
-                    class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition">
+        <div id="step-2" class="hidden space-y-8 animate__animated animate__fadeIn">
+            <h2 class="text-5xl font-black tracking-tighter leading-none text-white">VALIDAÇÃO <br> PROPRIETÁRIO.</h2>
+            <p class="text-gray-500 font-medium">Informe o WhatsApp da loja. Enviaremos um código de segurança para validar sua conta LLC.</p>
+            <input type="text" id="whatsapp" placeholder="DDD + NÚMERO (Ex: 11999999999)" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white font-bold outline-none">
+            <button onclick="sendCode()" class="w-full bg-blue-600 text-white font-black p-5 rounded-2xl text-lg shadow-xl shadow-blue-600/20">RECEBER CÓDIGO</button>
+        </div>
+
+        <div id="step-3" class="hidden space-y-8 animate__animated animate__fadeIn">
+            <h2 class="text-5xl font-black tracking-tighter leading-none text-white">INSIRA O <br> TOKEN.</h2>
+            <div class="flex justify-between gap-2">
+                <input type="text" maxlength="6" id="token" class="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-center text-4xl font-black tracking-[0.5em] text-blue-500 outline-none">
             </div>
+            <button onclick="finalVerify()" class="w-full bg-white text-black font-black p-5 rounded-2xl text-lg">ATIVAR CONTA PRO</button>
+        </div>
 
-            <div>
-                <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Google Maps URL</label>
-                <div class="flex gap-2">
-                    <input type="url" name="maps_url" id="maps_input" required placeholder="Cole o link ou use a busca -->"
-                        class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition">
-                    
-                    <button type="button" onclick="abrirBuscador()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 rounded-xl transition shadow-lg">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-                <p class="text-[10px] text-blue-400 mt-2 cursor-pointer hover:underline" onclick="abrirBuscador()">
-                    🔎 Não sabe seu link? Clique aqui que eu encontro.
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Email</label>
-                    <input type="email" name="email" required 
-                        class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition">
-                </div>
-                <div>
-                    <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Senha</label>
-                    <input type="password" name="password" required 
-                        class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition">
-                </div>
-            </div>
-
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl text-lg shadow-xl shadow-blue-900/20 transition-all transform hover:scale-[1.02] mt-4">
-                🚀 COMEÇAR TESTE GRÁTIS
-            </button>
-        </form>
-
-        <p class="mt-8 text-center text-sm text-gray-500">
-            Já é um membro? 
-            <a href="/login" class="text-blue-400 hover:text-blue-300 font-bold hover:underline">Fazer Login</a>
-        </p>
     </div>
 </div>
 
 <script>
-    function abrirBuscador() {
-        Swal.fire({
-            title: 'Encontrar meu Link',
-            html: `
-                <input id="swal-nome" class="swal2-input" style="background:#111; color:white; border:1px solid #333;" placeholder="Nome da Loja">
-                <input id="swal-cidade" class="swal2-input" style="background:#111; color:white; border:1px solid #333;" placeholder="Sua Cidade">
-            `,
-            background: '#111', color: '#fff',
-            confirmButtonText: 'Buscar Agora',
-            confirmButtonColor: '#2563EB',
-            preConfirm: () => {
-                const nome = document.getElementById('swal-nome').value;
-                const cidade = document.getElementById('swal-cidade').value;
-                if (!nome || !cidade) return Swal.showValidationMessage('Preencha os dois campos');
-                return { nome, cidade };
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({ title: 'Buscando...', didOpen: () => Swal.showLoading(), background: '#111', color: '#fff' });
-                
-                fetch('/api/find_maps_link', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ empresa: result.value.nome, cidade: result.value.cidade })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('maps_input').value = data.link;
-                        Swal.fire({ icon: 'success', title: 'Achamos!', background: '#111', color: '#fff', timer: 2000 });
-                    } else {
-                        Swal.fire({ icon: 'error', title: 'Não encontrado', text: data.error, background: '#111', color: '#fff' });
-                    }
-                });
-            }
-        });
+    function goToStep(step) {
+        document.getElementById('step-1').classList.add('hidden');
+        document.getElementById('step-2').classList.add('hidden');
+        document.getElementById('step-3').classList.add('hidden');
+        document.getElementById('step-' + step).classList.remove('hidden');
+    }
+
+    function sendCode() {
+        const phone = document.getElementById('whatsapp').value;
+        // Aqui você chamará a API no app.py para enviar via Z-API/Evolution
+        console.log("Enviando código para " + phone);
+        goToStep(3);
+    }
+
+    function finalVerify() {
+        // Lógica final de registro
+        alert("Conta Validada! Redirecionando...");
     }
 </script>
 {% endblock %}

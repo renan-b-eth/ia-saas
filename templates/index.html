@@ -1,80 +1,37 @@
 {% extends "base.html" %}
-
 {% block content %}
-<script src="https://unpkg.com/@lucide/web-bin"></script>
-<script src="https://unpkg.com/typewriter-effect@latest/dist/core.js"></script>
+<div class="relative min-h-screen flex flex-col items-center justify-center pt-20 overflow-hidden">
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full"></div>
 
-<div class="bg-[#050505] text-white min-h-screen font-sans selection:bg-blue-500/30">
-    <div class="relative pt-32 pb-20 px-4 overflow-hidden">
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-blue-600/10 blur-[120px] rounded-full"></div>
+    <div class="relative z-10 text-center px-6">
+        <h1 class="text-[clamp(3.5rem,12vw,9rem)] font-[900] leading-[0.8] tracking-[-0.06em] mb-10 animate__animated animate__fadeInUp">
+            THE <br> <span class="text-edge">FUTURE</span> <br> OF RETAIL.
+        </h1>
         
-        <div class="max-w-5xl mx-auto text-center relative z-10">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-8 animate__animated animate__fadeIn">
-                <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                <span class="text-xs font-medium tracking-widest uppercase text-gray-400">Rendey LLC • Artificial Intelligence</span>
-            </div>
-            
-            <h1 class="text-6xl md:text-8xl font-bold tracking-tighter mb-8 leading-[0.9]">
-                Sua loja no <br>
-                <span id="typewriter" class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600"></span>
-            </h1>
+        <p class="text-gray-500 text-lg md:text-xl font-medium max-w-xl mx-auto mb-12 animate__animated animate__fadeInUp animate__delay-1s">
+            Consultoria de Inteligência Artificial em escala industrial. Transforme dados em vídeos, roteiros e lucro real.
+        </p>
 
-            <p class="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed">
-                A primeira IA de consultoria estratégica para varejo que gera roteiros, audita lucros e escala suas vendas em escala global.
-            </p>
-
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="/register" class="w-full sm:w-auto px-8 py-4 bg-white text-black font-bold rounded-2xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2">
-                    Começar Agora <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                </a>
-                <a href="#demo" class="w-full sm:w-auto px-8 py-4 bg-white/5 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all">
-                    Ver Demonstração
-                </a>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-6 animate__animated animate__fadeInUp animate__delay-1s">
+            <a href="/register" class="px-12 py-5 bg-white text-black font-black text-xl rounded-2xl hover:bg-blue-600 hover:text-white transition-all transform hover:scale-105">
+                START NOW
+            </a>
+            <div class="flex items-center gap-3">
+                <span class="w-10 h-[1px] bg-gray-800"></span>
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-600 italic">NVIDIA H100 POWERED</span>
             </div>
         </div>
     </div>
-
-    <section class="max-w-7xl mx-auto px-4 py-20">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="md:col-span-2 bg-white/5 border border-white/10 p-10 rounded-[40px] hover:border-blue-500/50 transition">
-                <i data-lucide="video" class="w-10 h-10 text-blue-500 mb-6"></i>
-                <h3 class="text-3xl font-bold mb-4">Gerador de Vídeos Virais</h3>
-                <p class="text-gray-400">Roteiro, locução e edição de vídeo para Reels e TikTok em 1 clique. Otimizado para conversão no varejo.</p>
-            </div>
-            <div class="bg-gradient-to-br from-indigo-600 to-blue-700 p-10 rounded-[40px] flex flex-col justify-end">
-                <h3 class="text-2xl font-bold mb-2">97%</h3>
-                <p class="text-white/80">De precisão na identificação de gargalos financeiros via auditoria de IA.</p>
-            </div>
-            <div class="bg-white/5 border border-white/10 p-10 rounded-[40px] hover:border-purple-500/50 transition">
-                <i data-lucide="brain" class="w-10 h-10 text-purple-500 mb-6"></i>
-                <h3 class="text-2xl font-bold mb-4">Base de Conhecimento</h3>
-                <p class="text-gray-400">Sua IA aprende sobre sua loja através de PDFs e relatórios antigos.</p>
-            </div>
-            <div class="md:col-span-2 bg-white/5 border border-white/10 p-10 rounded-[40px] hover:border-green-500/50 transition">
-                <i data-lucide="trending-up" class="w-10 h-10 text-green-500 mb-6"></i>
-                <h3 class="text-3xl font-bold mb-4">Escalabilidade Americana</h3>
-                <p class="text-gray-400 text-lg">Processamento em servidores NVIDIA H100 nos EUA para máxima velocidade.</p>
-            </div>
-        </div>
-    </section>
-
-    <section class="py-20 bg-blue-600">
-        <div class="max-w-4xl mx-auto text-center px-4">
-            <h2 class="text-4xl font-black mb-6">Precisa de um Agente Exclusivo?</h2>
-            <p class="text-xl text-blue-100 mb-10">Desenhamos IAs personalizadas para o seu modelo de negócio específico.</p>
-            <a href="mailto:contact@rendey.store" class="px-10 py-5 bg-black text-white font-bold rounded-2xl text-lg hover:scale-105 transition">
-                Falar com Especialista
-            </a>
-        </div>
-    </section>
 </div>
 
-<script>
-    lucide.createIcons();
-    new Typewriter('#typewriter', {
-        strings: ['Piloto Automático', 'Nível de Elite', 'Modo Lucrativo'],
-        autoStart: true,
-        loop: true,
-    });
-</script>
+<section class="max-w-7xl mx-auto px-6 py-40 grid grid-cols-1 md:grid-cols-12 gap-6">
+    <div class="md:col-span-8 glass p-16 rounded-[3rem] flex flex-col justify-end min-h-[500px]">
+        <h3 class="text-5xl font-black tracking-tighter mb-4">Vídeo Viral IA</h3>
+        <p class="text-gray-500 text-xl max-w-sm">Roteiros estratégicos e vídeos renderizados em segundos.</p>
+    </div>
+    <div class="md:col-span-4 bg-blue-600 p-16 rounded-[3rem] flex flex-col justify-end">
+        <h3 class="text-6xl font-black mb-2 tracking-tighter text-white">97%</h3>
+        <p class="text-blue-100 font-bold uppercase text-xs tracking-widest">Efficiency Increase</p>
+    </div>
+</section>
 {% endblock %}
