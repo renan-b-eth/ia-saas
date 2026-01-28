@@ -70,6 +70,16 @@ app.config['MAIL_PASSWORD'] = '@@Dolarizandose2026'
 app.config['MAIL_DEFAULT_SENDER'] = 'contact@rendey.store'
 mail = Mail(app)
 
+@app.route('/download_video/<filename>')
+@login_required
+def download_video_route(filename):
+    # Força o download como anexo
+    return send_from_directory(
+        app.config['UPLOAD_FOLDER'], 
+        filename, 
+        as_attachment=True
+    )
+
 def enviar_alerta_admin(usuario, motivo, input_texto):
     msg = Message(
         subject=f"🚨 BLOQUEIO DE USUÁRIO: {usuario.company_name}",
@@ -140,133 +150,118 @@ class Document(db.Model):
 
 def worker_video_tutorial(app_obj, report_id, user_id):
     """
-    WORKER ENTERPRISE V2:
-    - Vídeo: Força compatibilidade yuv420p (Fix do 00:00).
-    - Texto: Limpeza agressiva de artefatos de código do JSON.
+    WORKER V3 (FINAL): DOWNLOAD STRATEGY
+    - Gera Roteiro Viral.
+    - Renderiza Vídeo MP4 (Download First).
+    - Salva Automaticamente na Knowledge Base (Memória).
     """
     with app_obj.app_context():
-        # Imports essenciais
+        # Imports locais para evitar circularidade
         from moviepy.editor import ImageClip, AudioFileClip
         from openai import OpenAI
         import edge_tts
         import asyncio
         import requests
         import os
-        import json
         import datetime
-        import re # Para limpeza avançada com Regex
-
+        
+        # Função de log interna
         def log_status(msg):
             timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-            print(f"[{timestamp}] 🏢 [ENTERPRISE FIX] {msg}", flush=True)
+            print(f"[{timestamp}] 🎬 [VIDEO-WORKER] {msg}", flush=True)
 
         try:
-            log_status(f"🚀 INICIANDO REPORT: {report_id}")
+            log_status(f"🚀 INICIANDO VÍDEO PARA REPORT: {report_id}")
             report = Report.query.get(report_id)
             
-            # --- 1. CÉREBRO NVIDIA ---
+            # --- 1. GERAÇÃO DO ROTEIRO (LLAMA 70B VIA NVIDIA) ---
             api_key = os.getenv("NVIDIA_API_KEY")
             client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
 
-            # Prompt reforçado para evitar lixo de código
+            # Prompt focado apenas no texto falado
             prompt_sistema = """
-            Você é um Consultor Estratégico Sênior (MBB level).
-            Gere um JSON estrito com:
-            1. 'roteiro_curto': Texto narrativo para o vídeo (max 40s).
-            2. 'analise_html': Um relatório HTML estruturado, profissional e direto ao ponto. Use tags <h3>, <p>, <ul> e <li>.
-            CRÍTICO: O campo 'analise_html' deve ser uma string única e limpa. NÃO use concatenação de strings Python (ex: não faça "texto" + "texto"). NÃO inclua quebras de linha literais (\n) no meio das frases HTML.
+            Você é um Diretor de Marketing especialista em Vídeos Virais (Reels/TikTok).
+            Sua missão: Criar um roteiro curto e impactante baseado na entrada do usuário.
+            Regra 1: Responda APENAS com o texto que será falado pelo locutor.
+            Regra 2: Não use marcações de cena como [Cena 1] ou (Música de fundo). Apenas o texto falado.
+            Regra 3: Máximo de 40 segundos de fala.
             """
-
-            prompt_usuario = f"Analise a ferramenta: {report.tool_name}\nDescrição: {report.tool_description}"
+            
+            # Usamos o input original ou a descrição da ferramenta
+            texto_base = report.input_data if report.input_data else report.tool_description
+            prompt_usuario = f"Crie um roteiro viral sobre: {texto_base}"
 
             completion = client.chat.completions.create(
                 model="meta/llama-3.1-70b-instruct",
                 messages=[{"role": "system", "content": prompt_sistema}, {"role": "user", "content": prompt_usuario}],
-                temperature=0.4, # Temperatura mais baixa para ser mais "quadrado" e correto
-                top_p=1,
-                max_tokens=2500
+                temperature=0.7,
+                max_tokens=800
             )
-
-            texto_raw = completion.choices[0].message.content
-            # Remove blocos de markdown se houver
-            texto_limpo_inicial = texto_raw.replace("```json", "").replace("```", "").strip()
             
-            roteiro = "Análise estratégica concluída."
-            html_final_limpo = ""
+            roteiro = completion.choices[0].message.content.strip()
+            log_status("📝 Roteiro gerado com sucesso.")
 
-            try:
-                dados_ia = json.loads(texto_limpo_inicial)
-                roteiro = dados_ia.get('roteiro_curto', roteiro)
-                html_sujo = dados_ia.get('analise_html', "")
-
-                # --- LIMPEZA AGRESSIVA (Enterprise Grade) ---
-                # 1. Remove concatenação de string Python feia
-                html_final_limpo = html_sujo.replace('"\n + "', ' ')
-                html_final_limpo = html_final_limpo.replace('" + "', ' ')
-                 # 2. Remove quebras de linha literais que não sejam HTML
-                html_final_limpo = html_final_limpo.replace('\\n', ' ')
-                # 3. Remove aspas duplas que sobram no início ou fim
-                html_final_limpo = html_final_limpo.strip('"')
-                # 4. Garante que tem um container
-                if not html_final_limpo.startswith('<div'):
-                     html_final_limpo = f"<div>{html_final_limpo}</div>"
-
-            except json.JSONDecodeError:
-                log_status("⚠️ Falha no JSON. Usando fallback de texto puro.")
-                # Se o JSON falhar, limpa o texto raw e envelopa em HTML
-                clean_raw = texto_raw.replace('"', '').replace(' + ', ' ').replace('\\n', '<br>')
-                html_final_limpo = f"<div class='prose prose-invert'><h3>Análise Bruta</h3><p>{clean_raw}</p></div>"
-
-            # --- 2. VOZ ---
-            log_status("🎙️ Gerando áudio...")
+            # --- 2. GERAÇÃO DE ÁUDIO (EDGE TTS) ---
+            log_status("🎙️ Sintetizando voz neural...")
             audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"audio_{report_id}.mp3")
+            # Voz masculina pt-BR impactante
             asyncio.run(edge_tts.Communicate(roteiro, "pt-BR-AntonioNeural").save(audio_path))
 
-            # --- 3. VÍDEO (FIX DO 00:00) ---
-            log_status("🎬 Renderizando vídeo compatível (yuv420p)...")
-            video_filename = f"video_final_{report_id}.mp4"
+            # --- 3. RENDERIZAÇÃO DE VÍDEO (MOVIEPY) ---
+            log_status("🎬 Renderizando MP4...")
+            video_filename = f"video_viral_{report_id}.mp4"
             video_path_final = os.path.join(app_obj.config['UPLOAD_FOLDER'], video_filename)
             foto_base = os.path.join(app_obj.config['UPLOAD_FOLDER'], "consultor_base.jpg")
-            temp_audio_path = os.path.join(app_obj.config['UPLOAD_FOLDER'], f"temp_audio_{report_id}.m4a")
-
+            
+            # Garante que a imagem base existe
             if not os.path.exists(foto_base):
+                 log_status("⬇️ Baixando imagem base...")
                  r = requests.get("https://raw.githubusercontent.com/renan-b-eth/rendey-assets/main/consultor.jpg")
                  with open(foto_base, 'wb') as f: f.write(r.content)
 
+            # Montagem
             audio_clip = AudioFileClip(audio_path)
-            # Duração mínima de 5s para evitar bugs em vídeos muito curtos
+            # Duração mínima de segurança (5s)
             duration = max(5, audio_clip.duration)
+            
             final_clip = ImageClip(foto_base).set_duration(duration).set_audio(audio_clip).set_fps(24)
-
-            # O SEGREDO DO PLAY: ffmpeg_params=['-pix_fmt', 'yuv420p']
+            
+            # Renderização com parâmetros de compatibilidade (yuv420p é vital para funcionar em todos players)
             final_clip.write_videofile(
                 video_path_final, 
                 codec='libx264', 
                 audio_codec='aac', 
-                preset='ultrafast',
-                ffmpeg_params=['-pix_fmt', 'yuv420p'], # <--- CRÍTICO PARA FUNCIONAR NO CHROME
-                temp_audiofile=temp_audio_path,
-                remove_temp=True,
+                preset='ultrafast', # Renderização rápida
+                ffmpeg_params=['-pix_fmt', 'yuv420p'], 
                 logger=None
             )
 
-            # --- 4. SALVAR TUDO NO BANCO ---
-            # Agora salvamos APENAS o HTML limpo e o Caminho do vídeo no banco.
-            # O HTML do layout vai ficar no template Jinja2, não aqui.
-            
-            report.ai_response = html_final_limpo # Salva só o HTML do texto
-            # Usamos um campo truque ou concatenamos para salvar a URL do vídeo
-            # Vamos salvar a URL do vídeo no final do HTML num formato oculto para o front ler
-            report.ai_response += f''
-            
+            # --- 4. SALVAR NA KNOWLEDGE BASE (MEMÓRIA) ---
+            # Aqui acontece a mágica: Salvamos na tabela Document
+            log_status("💾 Salvando na Memória do Cliente...")
+            try:
+                new_doc = Document(
+                    user_id=user_id,
+                    title=f"🎬 Roteiro: {report.tool_name} (#{report.id})",
+                    content=f"ROTEIRO DE VÍDEO GERADO:\n\n{roteiro}\n\n[ARQUIVO DE VÍDEO GERADO: {video_filename}]",
+                    file_type='video_script'
+                )
+                db.session.add(new_doc)
+                db.session.commit()
+            except Exception as e_db:
+                log_status(f"⚠️ Erro ao salvar na memória (mas o vídeo foi gerado): {e_db}")
+
+            # --- 5. FINALIZAÇÃO DO REPORT ---
+            # Formatamos a resposta para o HTML ler e criar o botão de download
+            report.ai_response = f"VIDEO_FILENAME:{video_filename}|||ROTEIRO:{roteiro}"
             report.status = "COMPLETED"
             db.session.commit()
-            log_status("🏆 SUCESSO ENTERPRISE!")
+            log_status("🏆 PROCESSO FINALIZADO COM SUCESSO!")
 
         except Exception as e:
-            log_status(f"💥 ERRO: {str(e)}")
+            log_status(f"💥 ERRO CRÍTICO: {str(e)}")
             report.status = "ERROR"
-            report.ai_response = f"<p class='text-red-400'>Erro na geração: {str(e)}</p>"
+            report.ai_response = f"Erro técnico na renderização: {str(e)}"
             db.session.commit()
 # --- 6. HIERARQUIA DE PLANOS ---
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
