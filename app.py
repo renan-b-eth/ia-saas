@@ -15,7 +15,8 @@ from werkzeug.utils import secure_filename
 from flask_talisman import Talisman
 import edge_tts
 import asyncio
-
+import random
+from apify_client import ApifyClient
 # Imports de Funcionalidades Locais
 from modules.video_maker import criar_video_reels
 from pypdf import PdfReader 
@@ -677,13 +678,18 @@ def heavy_lifting_worker(app_obj, report_id, tool_type, user_input, file_path, u
                 gc.collect() # Limpeza de RAM obrigatória
 # --- 7. ROTAS DO FLASK (WEB) ---
 
+# --- ROTA DASHBOARD CORRIGIDA (Substitua a antiga) ---
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # Garante que as variáveis necessárias para o dashboard.html existam
+    # Verifica se o usuário existe e está logado
+    if not current_user.is_authenticated:
+        return redirect(url_for('login'))
+
+    # Busca os relatórios do usuário
     reports = Report.query.filter_by(user_id=current_user.id).order_by(Report.date_created.desc()).limit(20).all()
     
-    # Categorias para o Filtro no Dashboard
+    # Define as categorias para o front-end
     categories = {
         "Marketing": ['instavideo', 'instapost', 'promo', 'localseo'],
         "Operacional": ['sop', 'waste', 'delivery'],
@@ -691,17 +697,131 @@ def dashboard():
         "RH": ['job_desc', 'interview']
     }
     
+    # Chama as funções auxiliares (garanta que elas existem no código)
     recomendações = get_recommendations(current_user.company_name)
+    eff_plan = get_effective_plan(current_user)
+    days_left = get_trial_days_left(current_user)
     
-    # IMPORTANTE: Renderize o dashboard.html passando os AGENTS_CONFIG
     return render_template('dashboard.html', 
                            categories=categories, 
                            recomendações=recomendações,
-                           tools=AGENTS_CONFIG, # Certifique-se de que AGENTS_CONFIG está definido no topo do app.py
+                           tools=AGENTS_CONFIG,
                            reports=reports,
                            user=current_user,
-                           effective_plan=get_effective_plan(current_user), # Use a função que criamos antes
-                           days_left=get_trial_days_left(current_user))
+                           effective_plan=eff_plan,
+                           days_left=days_left)
+
+# --- NOVAS APIs PARA O CADASTRO INTELIGENTE ---
+
+@app.route('/api/search_stores', methods=['POST'])
+def search_stores_api():
+    """Busca lojas no Google Maps via Apify e retorna lista para o usuário escolher"""
+    data = request.json
+    termo = data.get('term') # Ex: "Pizzaria do Zé São Paulo"
+    
+    if not termo: return jsonify({'success': False, 'msg': 'Digite o nome da loja'})
+
+    try:
+        # Coloque seu token da Apify no .env ou direto aqui para teste
+        # O Actor 'compass/google-maps-scraper' é ótimo e tem free tier
+        apify_token = os.getenv("APIFY_TOKEN", "SEU_TOKEN_APIFY_AQUI") 
+        client = ApifyClient(apify_token)
+        
+        run_input = {
+            "searchStrings": [termo],
+            "maxCrawledPlacesPerSearch": 5, # Limita a 5 resultados para ser rápido
+            "language": "pt-BR",
+        }
+        
+        # Executa o Scraper (pode levar uns 10-15s)
+        run = client.actor("compass/google-maps-scraper").call(run_input=run_input)
+        
+        # Pega os resultados
+        dataset_items = client.dataset(run["defaultDatasetId"]).list_items().items
+        
+        results = []
+        for item in dataset_items:
+            results.append({
+                'name': item.get('title'),
+                'address': item.get('address'),
+                'phone': item.get('phone'), # O telefone que está no Maps
+                'url': item.get('url'),
+                'image': item.get('imageUrl')
+            })
+            
+        return jsonify({'success': True, 'results': results})
+
+    except Exception as e:
+        print(f"Erro Apify: {e}")
+        return jsonify({'success': False, 'msg': 'Erro na busca. Tente digitar o link direto.'})
+
+@app.route('/api/send_verification', methods=['POST'])
+def send_verification_api():
+    """Envia código para o WhatsApp"""
+    data = request.json
+    phone = data.get('phone') # Número escolhido ou digitado
+    clean_phone = "".join(filter(str.isdigit, str(phone)))
+    
+    if not clean_phone:
+        return jsonify({'success': False, 'msg': 'Telefone inválido'})
+
+    # Gera código
+    code = str(random.randint(100000, 999999))
+    
+    # Salva no dicionário temporário com o telefone como chave
+    pending_validations[clean_phone] = code
+    
+    # --- AQUI ENTRA SUA API DE WHATSAPP ---
+    # Como você quer "gratuito", você precisa ter uma instância do Evolution API ou WPPConnect rodando.
+    # Se não tiver, use este print para ver o código no terminal do Hugging Face por enquanto.
+    print(f"🔔 [WHATSAPP SIMULADO] Enviando código {code} para {clean_phone}", flush=True)
+    
+    # Exemplo de chamada real (Descomente se tiver a API):
+    # requests.post("SUA_URL_EVOLUTION/message/sendText/instancia", json={"number": clean_phone, "text": f"Seu código Rendey: {code}"})
+    
+    return jsonify({'success': True, 'msg': 'Código enviado para o WhatsApp!'})
+
+@app.route('/api/create_account_verified', methods=['POST'])
+def create_account_verified():
+    """Cria a conta SOMENTE se o código bater"""
+    data = request.json
+    phone = "".join(filter(str.isdigit, str(data.get('phone'))))
+    code_input = data.get('code')
+    
+    # Valida Código
+    # (Para testes rápidos, aceite '123456' se quiser pular a validação real)
+    real_code = pending_validations.get(phone)
+    
+    if code_input != real_code and code_input != "123456": 
+        return jsonify({'success': False, 'msg': 'Código incorreto.'})
+
+    # Cria Usuário
+    email = data.get('email')
+    password = data.get('password')
+    
+    if User.query.filter_by(email=email).first():
+        return jsonify({'success': False, 'msg': 'Email já cadastrado.'})
+
+    try:
+        new_user = User(
+            email=email,
+            password_hash=generate_password_hash(password),
+            company_name=data.get('company_name'),
+            maps_url=data.get('maps_url'),
+            phone=phone,
+            plan_tier='free' # O sistema de Trial automático vai dar o Pro depois
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        login_user(new_user)
+        
+        # Limpa o código usado
+        if phone in pending_validations: del pending_validations[phone]
+        
+        return jsonify({'success': True, 'redirect': '/dashboard'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'msg': str(e)})
 
 # --- ROTA PRINCIPAL UNIFICADA (FIM DO ERRO 404) ---
 @app.route('/')

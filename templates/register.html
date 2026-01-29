@@ -1,53 +1,235 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="min-h-screen flex items-center justify-center px-6 pt-20 bg-black">
-    <div class="w-full max-w-md">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="min-h-screen flex items-center justify-center px-6 py-20 bg-black relative overflow-hidden">
+    <div class="absolute w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[150px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+
+    <div class="w-full max-w-2xl bg-[#0A0A0A] border border-white/10 p-10 rounded-[3rem] relative z-10 shadow-2xl">
         
-        <div id="step-1" class="space-y-8 animate__animated animate__fadeIn">
-            <h2 class="text-5xl font-black tracking-tighter leading-none text-white">IDENTIFIQUE <br> SUA LOJA.</h2>
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-black text-white uppercase tracking-tighter mb-2">Setup Inicial</h1>
+            <p class="text-gray-500 font-bold uppercase text-[10px] tracking-[0.3em]">Validação de Propriedade LLC</p>
+            
+            <div class="flex justify-center gap-2 mt-6">
+                <div id="bar-1" class="h-1 w-8 bg-blue-600 rounded-full transition-all"></div>
+                <div id="bar-2" class="h-1 w-8 bg-gray-800 rounded-full transition-all"></div>
+                <div id="bar-3" class="h-1 w-8 bg-gray-800 rounded-full transition-all"></div>
+            </div>
+        </div>
+
+        <div id="step-1" class="animate__animated animate__fadeIn">
+            <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-4 ml-2">1. Localize sua Empresa</label>
+            <div class="flex gap-2">
+                <input type="text" id="search_term" placeholder="Nome da Loja + Cidade (Ex: Pizzaria Bella Roma SP)" 
+                       class="w-full bg-black border border-white/10 rounded-2xl p-5 text-white outline-none focus:border-blue-600 transition font-medium">
+                <button onclick="buscarLoja()" class="bg-blue-600 text-white px-6 rounded-2xl font-black hover:bg-blue-500 transition">
+                    <i data-lucide="search" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div id="results_area" class="mt-6 space-y-3 hidden">
+                <p class="text-gray-500 text-xs uppercase tracking-widest text-center">Selecione sua loja:</p>
+                <div id="results_list" class="max-h-60 overflow-y-auto pr-2 space-y-2 custom-scrollbar"></div>
+            </div>
+            
+            <div class="mt-8 text-center">
+                <p class="text-gray-600 text-xs cursor-pointer hover:text-white" onclick="pularBusca()">Não encontrei, quero digitar manualmente.</p>
+            </div>
+        </div>
+
+        <div id="step-2" class="hidden animate__animated animate__fadeIn">
+            <div class="bg-blue-900/10 border border-blue-500/20 p-6 rounded-2xl mb-8 flex items-center gap-4">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shrink-0">
+                    <i data-lucide="store" class="text-white"></i>
+                </div>
+                <div>
+                    <h3 id="selected_name" class="font-black text-white text-lg">Nome da Loja</h3>
+                    <p id="selected_address" class="text-gray-400 text-xs">Endereço...</p>
+                    <input type="hidden" id="final_maps_url">
+                    <input type="hidden" id="final_company_name">
+                </div>
+            </div>
+
+            <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-4 ml-2">2. Validação de Segurança</label>
+            <p class="text-gray-500 text-sm mb-4">Enviaremos um código para o WhatsApp oficial para confirmar que você é o dono.</p>
+            
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="whatsapp_number" placeholder="DDD + Número (Ex: 11999999999)" 
+                       class="w-full bg-black border border-white/10 rounded-2xl p-5 text-white outline-none font-medium">
+                <button onclick="enviarCodigo()" id="btn-send" class="bg-white text-black px-6 rounded-2xl font-black hover:bg-gray-200 transition whitespace-nowrap">
+                    ENVIAR CÓDIGO
+                </button>
+            </div>
+
+            <div id="code_area" class="hidden mt-6">
+                <input type="text" id="verification_code" placeholder="Digite o Código de 6 dígitos" 
+                       class="w-full bg-black border border-blue-500/50 rounded-2xl p-5 text-white text-center text-2xl font-black tracking-[0.5em] outline-none">
+                <button onclick="verificarIrProximo()" class="w-full mt-4 bg-blue-600 text-white py-5 rounded-2xl font-black hover:bg-blue-500 transition shadow-lg">
+                    VALIDAR ACESSO
+                </button>
+            </div>
+        </div>
+
+        <div id="step-3" class="hidden animate__animated animate__fadeIn">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 animate__animated animate__bounceIn">
+                    <i data-lucide="check" class="text-black w-8 h-8"></i>
+                </div>
+                <h2 class="text-2xl font-black text-white">PROPRIEDADE CONFIRMADA</h2>
+            </div>
+
             <div class="space-y-4">
-                <input type="text" id="company_name" placeholder="NOME DA EMPRESA" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white font-bold outline-none focus:border-blue-600 transition">
-                <input type="url" id="maps_url" placeholder="URL DO GOOGLE MAPS" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white font-bold outline-none focus:border-blue-600 transition">
+                <div>
+                    <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-2">Seu E-mail Corporativo</label>
+                    <input type="email" id="final_email" class="w-full bg-black border border-white/10 rounded-2xl p-5 text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-2">Defina uma Senha</label>
+                    <input type="password" id="final_password" class="w-full bg-black border border-white/10 rounded-2xl p-5 text-white outline-none">
+                </div>
+                <button onclick="finalizarCadastro()" class="w-full bg-white text-black py-6 rounded-2xl font-black text-xl hover:scale-[1.02] transition shadow-xl mt-4">
+                    ATIVAR CONTA PRO
+                </button>
             </div>
-            <button onclick="goToStep(2)" class="w-full bg-white text-black font-black p-5 rounded-2xl text-lg hover:bg-blue-600 hover:text-white transition-all">PRÓXIMO</button>
-        </div>
-
-        <div id="step-2" class="hidden space-y-8 animate__animated animate__fadeIn">
-            <h2 class="text-5xl font-black tracking-tighter leading-none text-white">VALIDAÇÃO <br> PROPRIETÁRIO.</h2>
-            <p class="text-gray-500 font-medium">Informe o WhatsApp da loja. Enviaremos um código de segurança para validar sua conta LLC.</p>
-            <input type="text" id="whatsapp" placeholder="DDD + NÚMERO (Ex: 11999999999)" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white font-bold outline-none">
-            <button onclick="sendCode()" class="w-full bg-blue-600 text-white font-black p-5 rounded-2xl text-lg shadow-xl shadow-blue-600/20">RECEBER CÓDIGO</button>
-        </div>
-
-        <div id="step-3" class="hidden space-y-8 animate__animated animate__fadeIn">
-            <h2 class="text-5xl font-black tracking-tighter leading-none text-white">INSIRA O <br> TOKEN.</h2>
-            <div class="flex justify-between gap-2">
-                <input type="text" maxlength="6" id="token" class="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-center text-4xl font-black tracking-[0.5em] text-blue-500 outline-none">
-            </div>
-            <button onclick="finalVerify()" class="w-full bg-white text-black font-black p-5 rounded-2xl text-lg">ATIVAR CONTA PRO</button>
         </div>
 
     </div>
 </div>
 
 <script>
-    function goToStep(step) {
-        document.getElementById('step-1').classList.add('hidden');
-        document.getElementById('step-2').classList.add('hidden');
-        document.getElementById('step-3').classList.add('hidden');
-        document.getElementById('step-' + step).classList.remove('hidden');
+    let dadosLoja = {};
+
+    function buscarLoja() {
+        const termo = document.getElementById('search_term').value;
+        if(termo.length < 3) return Swal.fire('Erro', 'Digite pelo menos 3 letras', 'error');
+        
+        const btn = document.querySelector('button');
+        btn.innerHTML = '<span class="animate-spin">Wait</span>';
+        
+        fetch('/api/search_stores', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({term: termo})
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.innerHTML = '<i data-lucide="search" class="w-6 h-6"></i>';
+            lucide.createIcons();
+            
+            if(data.success && data.results.length > 0) {
+                const list = document.getElementById('results_list');
+                list.innerHTML = '';
+                data.results.forEach(loja => {
+                    const div = document.createElement('div');
+                    div.className = 'p-4 bg-white/5 border border-white/5 rounded-xl hover:bg-blue-600/20 hover:border-blue-500/50 cursor-pointer transition flex items-center gap-3';
+                    div.innerHTML = `
+                        <div class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center shrink-0">
+                            <i data-lucide="map-pin" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <p class="font-bold text-white text-sm truncate">${loja.name}</p>
+                            <p class="text-gray-500 text-xs truncate">${loja.address}</p>
+                        </div>
+                    `;
+                    div.onclick = () => selecionarLoja(loja);
+                    list.appendChild(div);
+                });
+                document.getElementById('results_area').classList.remove('hidden');
+                lucide.createIcons();
+            } else {
+                Swal.fire('Ops', 'Nenhuma loja encontrada. Tente ser mais específico.', 'info');
+            }
+        });
     }
 
-    function sendCode() {
-        const phone = document.getElementById('whatsapp').value;
-        // Aqui você chamará a API no app.py para enviar via Z-API/Evolution
-        console.log("Enviando código para " + phone);
-        goToStep(3);
+    function selecionarLoja(loja) {
+        dadosLoja = loja;
+        document.getElementById('selected_name').innerText = loja.name;
+        document.getElementById('selected_address').innerText = loja.address;
+        document.getElementById('final_maps_url').value = loja.url;
+        document.getElementById('final_company_name').value = loja.name;
+        
+        // Pré-preenche o telefone se o Google Maps tiver retornado
+        if(loja.phone) {
+            document.getElementById('whatsapp_number').value = loja.phone.replace(/\D/g, '');
+        }
+
+        mudarPasso(1, 2);
     }
 
-    function finalVerify() {
-        // Lógica final de registro
-        alert("Conta Validada! Redirecionando...");
+    function pularBusca() {
+        document.getElementById('selected_name').innerText = "Loja Manual";
+        document.getElementById('selected_address').innerText = "Cadastro Direto";
+        mudarPasso(1, 2);
     }
+
+    function enviarCodigo() {
+        const phone = document.getElementById('whatsapp_number').value;
+        if(phone.length < 10) return Swal.fire('Erro', 'Telefone inválido', 'error');
+
+        const btn = document.getElementById('btn-send');
+        btn.innerText = "ENVIANDO...";
+        
+        fetch('/api/send_verification', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({phone: phone})
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.innerText = "REENVIAR";
+            if(data.success) {
+                document.getElementById('code_area').classList.remove('hidden');
+                Swal.fire({
+                    icon: 'success', 
+                    title: 'Código Enviado!', 
+                    text: 'Verifique seu WhatsApp. (Se estiver testando, olhe o log do servidor)',
+                    background: '#111', color: '#fff'
+                });
+            }
+        });
+    }
+
+    function verificarIrProximo() {
+        // Validação visual apenas aqui, a real acontece na criação da conta
+        const code = document.getElementById('verification_code').value;
+        if(code.length < 4) return Swal.fire('Erro', 'Código muito curto', 'error');
+        mudarPasso(2, 3);
+    }
+
+    function finalizarCadastro() {
+        const payload = {
+            company_name: document.getElementById('final_company_name').value || document.getElementById('search_term').value,
+            maps_url: document.getElementById('final_maps_url').value,
+            phone: document.getElementById('whatsapp_number').value,
+            code: document.getElementById('verification_code').value,
+            email: document.getElementById('final_email').value,
+            password: document.getElementById('final_password').value
+        };
+
+        fetch('/api/create_account_verified', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                window.location.href = data.redirect;
+            } else {
+                Swal.fire('Erro', data.msg, 'error');
+            }
+        });
+    }
+
+    function mudarPasso(atual, proximo) {
+        document.getElementById(`step-${atual}`).classList.add('hidden');
+        document.getElementById(`step-${proximo}`).classList.remove('hidden');
+        document.getElementById(`step-${proximo}`).classList.add('animate__fadeIn');
+        
+        // Atualiza barra
+        document.getElementById(`bar-${proximo}`).classList.remove('bg-gray-800');
+        document.getElementById(`bar-${proximo}`).classList.add('bg-blue-600');
+    }
+    
+    lucide.createIcons();
 </script>
 {% endblock %}
