@@ -1,12 +1,34 @@
-# Stripe Price IDs (mantém)
-PRICE_ID_STARTER = "price_1StrGmL5fMgQY8LOBZiFBLJ9"
-PRICE_ID_PRO = "price_1StrHeL5fMgQY8LOCQbOgC71"
-PRICE_ID_AGENCY = "price_1StrIWL5fMgQY8LOR75qDWbv"
+# app/constants.py
+import os
 
+# -------------------------
+# Ambiente / Domínio
+# -------------------------
+DOMAIN_URL = os.getenv("DOMAIN_URL", "https://renan-b-eth-saas-varejo.hf.space")
+
+# -------------------------
+# Stripe
+# -------------------------
+# ⚠️ Em produção: use ENV no HuggingFace (Settings -> Variables)
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "sk_live_SUA_CHAVE_AQUI")
+STRIPE_PUBLIC_KEY = os.getenv("STRIPE_PUBLIC_KEY", "pk_live_SUA_CHAVE_AQUI")
+
+# Price IDs (os seus)
+PRICE_ID_STARTER = os.getenv("PRICE_ID_STARTER", "price_1StrGmL5fMgQY8LOBZiFBLJ9")
+PRICE_ID_PRO = os.getenv("PRICE_ID_PRO", "price_1StrHeL5fMgQY8LOCQbOgC71")
+PRICE_ID_AGENCY = os.getenv("PRICE_ID_AGENCY", "price_1StrIWL5fMgQY8LOR75qDWbv")
+
+# -------------------------
+# Planos
+# -------------------------
 PLAN_LEVELS = {"free": 0, "starter": 1, "pro": 2, "agency": 3}
 
-# LISTA COMPLETA DE AGENTES (mantida)
+# -------------------------
+# AGENTS_CONFIG (o seu JSON grande)
+# -------------------------
+# ✅ Se você já tem AGENTS_CONFIG em outro arquivo, coloca tudo aqui e remove duplicação.
 AGENTS_CONFIG = {
+    # --- PLANO AGENCY ---
     "instavideo": {
         "name": "Gerador de Reels Viral",
         "icon": "🎬",
@@ -15,6 +37,8 @@ AGENTS_CONFIG = {
         "min_plan": "agency",
         "example_input": "Promoção de Queima de Estoque de Inverno: Todas as jaquetas com 50% OFF, apenas neste fim de semana.",
     },
+
+    # --- PLANO PRO ---
     "scanner": {
         "name": "Scanner de Preços (Foto)",
         "icon": "📸",
@@ -55,6 +79,8 @@ AGENTS_CONFIG = {
         "min_plan": "pro",
         "example_input": "https://www.google.com/maps/place/minha_loja",
     },
+
+    # --- PLANO STARTER ---
     "instapost": {
         "name": "Criador de Post Insta",
         "icon": "📸",
