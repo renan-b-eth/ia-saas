@@ -3,217 +3,515 @@
 {% block content %}
 <script src="https://unpkg.com/@lucide/web-bin"></script>
 
-<div class="px-4 py-8 max-w-7xl mx-auto" id="dashboard-app">
-    
-    {% if effective_plan == 'pro' and user.plan_tier == 'free' %}
-    <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 text-white p-6 rounded-3xl shadow-2xl mb-10 flex flex-col md:flex-row justify-between items-center relative overflow-hidden group">
-        <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-        <div class="relative z-10">
-            <h3 class="font-black text-2xl flex items-center gap-2">
-                <i data-lucide="zap" class="fill-current text-yellow-400"></i>
-                MODO TURBO: ATIVADO
+<div class="mx-auto max-w-7xl px-4 py-8" id="dashboard-app">
+
+  {# =========================
+     TOP HEADER / CONTEXTO
+     ========================= #}
+  <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between mb-10">
+    <div class="flex items-center gap-5">
+      <div class="relative">
+        <img
+          src="{{ user.avatar_url }}"
+          class="h-16 w-16 rounded-2xl border border-white/10 object-cover shadow-2xl"
+          onerror="this.src='https://ui-avatars.com/api/?name={{ (user.company_name)|urlencode }}&background=111827&color=fff&bold=true'"
+        />
+        <div class="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 ring-4 ring-black/40"></div>
+      </div>
+
+      <div>
+        <div class="flex flex-wrap items-center gap-2">
+          <h1 class="text-2xl md:text-3xl font-black tracking-tight text-white">
+            {{ user.company_name or "Sua loja" }}
+          </h1>
+
+          {# Plano badge #}
+          {% set plan_label = (effective_plan or "free")|upper %}
+          <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-black tracking-widest text-gray-200">
+            <span class="h-2 w-2 rounded-full
+              {% if effective_plan == 'agency' %} bg-amber-400
+              {% elif effective_plan == 'pro' %} bg-blue-400
+              {% else %} bg-gray-400 {% endif %}">
+            </span>
+            {{ plan_label }} MEMBER
+          </span>
+
+          {# Data atual #}
+          <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold text-gray-300">
+            <i data-lucide="calendar" class="h-4 w-4"></i>
+            {% if today %}
+              {{ today.strftime('%d/%m/%Y') }}
+            {% else %}
+              Hoje
+            {% endif %}
+          </span>
+        </div>
+
+        <p class="mt-1 text-sm text-gray-400">
+          Painel executivo • insights, agentes e histórico da sua operação
+        </p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-3">
+      <a href="/knowledge"
+         class="group inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-gray-200 hover:bg-white/10 transition">
+        <i data-lucide="brain" class="h-5 w-5 text-purple-300 group-hover:scale-110 transition"></i>
+        Memória da IA
+      </a>
+
+      <a href="/support"
+         class="group inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-gray-200 hover:bg-white/10 transition">
+        <i data-lucide="life-buoy" class="h-5 w-5 text-emerald-300 group-hover:scale-110 transition"></i>
+        Suporte
+      </a>
+
+      <a href="/profile"
+         class="group inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-gray-200 hover:bg-white/10 transition">
+        <i data-lucide="settings" class="h-5 w-5 group-hover:rotate-12 transition"></i>
+      </a>
+    </div>
+  </div>
+
+
+  {# =========================
+     BANNER ASSINATURA / AVISOS
+     ========================= #}
+  {% if effective_plan == 'pro' and user.plan_tier == 'free' %}
+    <div class="mb-10 overflow-hidden rounded-[2rem] border border-blue-500/20 bg-gradient-to-r from-blue-700/80 via-indigo-700/70 to-purple-700/70 shadow-2xl relative">
+      <div class="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-white/10 blur-3xl"></div>
+      <div class="absolute -left-24 -bottom-24 h-64 w-64 rounded-full bg-white/10 blur-3xl"></div>
+
+      <div class="relative p-6 md:p-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div class="flex items-start gap-3">
+          <div class="mt-0.5 rounded-2xl bg-white/10 p-3 border border-white/10">
+            <i data-lucide="zap" class="h-6 w-6 text-yellow-300"></i>
+          </div>
+          <div>
+            <h3 class="text-xl md:text-2xl font-black text-white">
+              Trial PRO ativo
             </h3>
-            <p class="text-blue-100 opacity-90 mt-1">Você está usando o Plano Pro gratuitamente. Restam <strong>{{ days_left }} dias</strong> de acesso total.</p>
+            <p class="mt-1 text-blue-100/90">
+              Restam <span class="font-black text-white">{{ days_left }}</span> dias para acesso total.
+              Garanta o plano para não perder recursos premium.
+            </p>
+            <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-blue-100/80">
+              <span class="inline-flex items-center gap-1 rounded-full bg-black/20 px-3 py-1 border border-white/10">
+                <i data-lucide="shield-check" class="h-4 w-4"></i> acesso liberado
+              </span>
+              <span class="inline-flex items-center gap-1 rounded-full bg-black/20 px-3 py-1 border border-white/10">
+                <i data-lucide="sparkles" class="h-4 w-4"></i> agentes premium
+              </span>
+              <span class="inline-flex items-center gap-1 rounded-full bg-black/20 px-3 py-1 border border-white/10">
+                <i data-lucide="clock" class="h-4 w-4"></i> sem interrupção
+              </span>
+            </div>
+          </div>
         </div>
-        <a href="/pricing" class="relative z-10 mt-4 md:mt-0 bg-white text-blue-700 font-black py-4 px-8 rounded-2xl hover:scale-105 transition shadow-xl">
-            GARANTIR ACESSO VITALÍCIO
-        </a>
-    </div>
-    {% endif %}
 
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
-        <div class="flex items-center gap-5">
-            <div class="relative group">
-                <img src="{{ user.avatar_url }}" class="w-20 h-20 rounded-[2rem] border-4 border-gray-800 object-cover shadow-2xl group-hover:scale-105 transition" onerror="this.src='https://ui-avatars.com/api/?name={{ user.company_name }}&background=2563eb&color=fff'">
-                <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-4 border-gray-900 rounded-full"></div>
-            </div>
-            <div>
-                <h1 class="text-3xl font-black text-white tracking-tighter">Olá, {{ user.full_name or user.company_name }}</h1>
-                <div class="flex items-center gap-3 mt-1">
-                    <span class="bg-blue-900/40 text-blue-400 text-[10px] px-2 py-0.5 rounded-full border border-blue-500/30 font-bold uppercase tracking-widest">{{ effective_plan }} MEMBER</span>
-                    <span class="text-gray-500 text-xs flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> Rendey Cloud Boise, ID</span>
-                </div>
-            </div>
-        </div>
-        
         <div class="flex gap-3">
-            <a href="/knowledge" class="bg-gray-800 hover:bg-gray-700 p-4 rounded-2xl text-gray-300 transition-all border border-gray-700 flex items-center gap-3">
-                <i data-lucide="brain" class="w-5 h-5 text-purple-400"></i>
-                <span class="font-bold text-sm">Memória da IA</span>
-            </a>
-            <a href="/profile" class="bg-gray-800 hover:bg-gray-700 p-4 rounded-2xl text-gray-300 transition-all border border-gray-700">
-                <i data-lucide="settings" class="w-5 h-5"></i>
-            </a>
+          <a href="/pricing"
+             class="inline-flex items-center justify-center rounded-2xl bg-white px-6 py-4 font-black text-blue-800 hover:scale-[1.02] transition shadow-xl">
+            Fazer upgrade
+          </a>
+          <a href="/support"
+             class="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-6 py-4 font-black text-white hover:bg-white/15 transition">
+            Falar com suporte
+          </a>
         </div>
+      </div>
+    </div>
+  {% elif effective_plan == 'free' %}
+    <div class="mb-10 overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-xl">
+      <div class="p-6 md:p-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div class="flex items-start gap-3">
+          <div class="mt-0.5 rounded-2xl bg-white/5 p-3 border border-white/10">
+            <i data-lucide="lock" class="h-6 w-6 text-gray-200"></i>
+          </div>
+          <div>
+            <h3 class="text-xl font-black text-white">Plano Free</h3>
+            <p class="mt-1 text-gray-300/80">
+              Alguns agentes ficam bloqueados. Faça upgrade para liberar automações, relatórios e recursos premium.
+            </p>
+          </div>
+        </div>
+        <a href="/pricing"
+           class="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-6 py-4 font-black text-white hover:bg-blue-500 transition shadow-xl">
+          Ver planos
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
+
+  {# =========================
+     KPI CARDS (SaaS feel)
+     ========================= #}
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+    <div class="rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-xl">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-black tracking-widest text-gray-400 uppercase">Loja</p>
+        <i data-lucide="store" class="h-5 w-5 text-gray-300"></i>
+      </div>
+      <p class="mt-2 text-lg font-black text-white truncate">{{ user.company_name or "Não informado" }}</p>
+      <p class="mt-1 text-sm text-gray-400">Seu centro de comando Rendey</p>
     </div>
 
-    <div class="mb-12">
-        <div class="flex items-center gap-2 mb-6">
-            <div class="p-2 bg-blue-600 rounded-lg"><i data-lucide="sparkles" class="w-4 h-4 text-white"></i></div>
-            <h2 class="text-xl font-black text-white uppercase tracking-widest text-sm">IA Suggestion: Recomendado para o nicho de {{ user.company_name }}</h2>
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {% for tool_id in recomendações %}
-                {% set tool = tools[tool_id] %}
-                {% if tool %}
-                <a href="/tool/{{ tool_id }}" class="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-[2.5rem] border border-white/5 hover:border-blue-500/40 transition group relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-100 transition"><i data-lucide="star" class="text-blue-500"></i></div>
-                    <div class="text-4xl mb-4 transform group-hover:scale-110 transition duration-300">{{ tool.icon }}</div>
-                    <h3 class="text-lg font-black text-white group-hover:text-blue-400 transition">{{ tool.name }}</h3>
-                    <p class="text-gray-500 text-xs mt-2 line-clamp-2">Aumente seus resultados com este agente especializado.</p>
-                </a>
-                {% endif %}
-            {% endfor %}
-        </div>
+    <div class="rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-xl">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-black tracking-widest text-gray-400 uppercase">Assinatura</p>
+        <i data-lucide="crown" class="h-5 w-5 text-amber-300"></i>
+      </div>
+
+      {% if effective_plan == 'pro' and user.plan_tier == 'free' %}
+        <p class="mt-2 text-lg font-black text-white">Trial PRO</p>
+        <p class="mt-1 text-sm text-gray-400">
+          {{ days_left }} dias restantes
+        </p>
+      {% else %}
+        <p class="mt-2 text-lg font-black text-white">{{ (effective_plan or "free")|upper }}</p>
+        <p class="mt-1 text-sm text-gray-400">
+          Status ativo
+        </p>
+      {% endif %}
     </div>
 
-    <div class="flex items-center justify-between mb-8">
-        <h2 class="text-xl font-black text-white border-l-4 border-blue-600 pl-4 uppercase tracking-tighter">Todos os Agentes</h2>
-        <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-            <button onclick="filterTools('all')" class="cat-btn active px-4 py-2 rounded-xl text-xs font-bold transition">Todos</button>
-            <button onclick="filterTools('Marketing')" class="cat-btn px-4 py-2 rounded-xl text-xs font-bold transition">Marketing</button>
-            <button onclick="filterTools('Operacional')" class="cat-btn px-4 py-2 rounded-xl text-xs font-bold transition">Operação</button>
-            <button onclick="filterTools('Estratégico')" class="cat-btn px-4 py-2 rounded-xl text-xs font-bold transition">Estratégia</button>
+    <div class="rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-xl">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-black tracking-widest text-gray-400 uppercase">Atividade</p>
+        <i data-lucide="activity" class="h-5 w-5 text-emerald-300"></i>
+      </div>
+
+      {% if reports and reports|length > 0 %}
+        <p class="mt-2 text-lg font-black text-white">{{ reports|length }} registros</p>
+        <p class="mt-1 text-sm text-gray-400">Últimos 20 itens no histórico</p>
+      {% else %}
+        <p class="mt-2 text-lg font-black text-white">Sem registros</p>
+        <p class="mt-1 text-sm text-gray-400">Execute um agente para iniciar</p>
+      {% endif %}
+    </div>
+  </div>
+
+
+  {# =========================
+     RECOMENDAÇÕES (hero cards)
+     ========================= #}
+  <div class="mb-10">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-2">
+        <div class="rounded-xl bg-blue-600 p-2">
+          <i data-lucide="sparkles" class="h-4 w-4 text-white"></i>
         </div>
+        <div>
+          <h2 class="text-white font-black tracking-tight text-lg">Sugestões inteligentes</h2>
+          <p class="text-gray-400 text-sm">Recomendado para o nicho de {{ user.company_name or "sua loja" }}</p>
+        </div>
+      </div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-16" id="tools-grid">
-        {% for key, tool in tools.items() %}
-            {% set is_locked = not access(user, tool.min_plan) %}
-            
-            {# Lógica para CSS de Categoria #}
-            {% set cat = "Marketing" %}
-            {% if key in ['sop', 'waste', 'delivery', 'loss_prevention'] %}{% set cat = "Operacional" %}{% endif %}
-            {% if key in ['persona', 'spy', 'audit', 'menu_eng', 'shark_negotiator'] %}{% set cat = "Estratégico" %}{% endif %}
-            {% if key in ['job_desc', 'interview'] %}{% set cat = "RH" %}{% endif %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {% for tool_id in recomendações %}
+        {% set tool = tools[tool_id] %}
+        {% if tool %}
+          <a href="/tool/{{ tool_id }}"
+             class="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/10 to-white/5 p-6 shadow-2xl hover:border-blue-500/40 transition">
+            <div class="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-blue-500/10 blur-2xl"></div>
+            <div class="relative">
+              <div class="text-4xl mb-3 transform group-hover:scale-110 transition duration-300">
+                {{ tool.icon }}
+              </div>
+              <h3 class="text-white font-black text-lg group-hover:text-blue-300 transition">{{ tool.name }}</h3>
+              <p class="mt-2 text-gray-400 text-sm line-clamp-2">
+                Aumente performance e velocidade com este agente.
+              </p>
+              <div class="mt-4 inline-flex items-center gap-2 text-xs font-black tracking-widest uppercase text-blue-300">
+                Abrir agente <i data-lucide="arrow-right" class="h-4 w-4"></i>
+              </div>
+            </div>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
 
-            <div class="tool-card group" data-category="{{ cat }}">
-                {% if is_locked %}
-                    <div class="bg-gray-800/40 border border-gray-700/50 rounded-3xl p-6 h-full flex flex-col items-center justify-center text-center opacity-40 relative group">
-                        <div class="absolute inset-0 flex items-center justify-center z-10">
-                            <i data-lucide="lock" class="text-gray-500 w-8 h-8"></i>
-                        </div>
-                        <div class="text-4xl mb-3 grayscale">{{ tool.icon }}</div>
-                        <h3 class="font-bold text-gray-500 text-sm">{{ tool.name }}</h3>
-                        <a href="/pricing" class="absolute inset-0 z-20"></a>
-                    </div>
+
+  {# =========================
+     TODOS OS AGENTES (grid + filtros)
+     ========================= #}
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-white text-xl font-black tracking-tight">Todos os agentes</h2>
+      <p class="text-gray-400 text-sm">Marketing, Operação, Estratégia e RH</p>
+    </div>
+
+    <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+      <button type="button" onclick="filterTools('all')" class="cat-btn active px-4 py-2 rounded-xl text-xs font-black tracking-widest transition">
+        Todos
+      </button>
+      <button type="button" onclick="filterTools('Marketing')" class="cat-btn px-4 py-2 rounded-xl text-xs font-black tracking-widest transition">
+        Marketing
+      </button>
+      <button type="button" onclick="filterTools('Operacional')" class="cat-btn px-4 py-2 rounded-xl text-xs font-black tracking-widest transition">
+        Operação
+      </button>
+      <button type="button" onclick="filterTools('Estratégico')" class="cat-btn px-4 py-2 rounded-xl text-xs font-black tracking-widest transition">
+        Estratégia
+      </button>
+      <button type="button" onclick="filterTools('RH')" class="cat-btn px-4 py-2 rounded-xl text-xs font-black tracking-widest transition">
+        RH
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-12" id="tools-grid">
+    {% for key, tool in tools.items() %}
+      {% set is_locked = not access(user, tool.min_plan) %}
+
+      {# Categoria #}
+      {% set cat = "Marketing" %}
+      {% if key in ['sop', 'waste', 'delivery', 'loss_prevention'] %}{% set cat = "Operacional" %}{% endif %}
+      {% if key in ['persona', 'spy', 'audit', 'menu_eng', 'shark_negotiator'] %}{% set cat = "Estratégico" %}{% endif %}
+      {% if key in ['job_desc', 'interview'] %}{% set cat = "RH" %}{% endif %}
+
+      <div class="tool-card" data-category="{{ cat }}">
+        {% if is_locked %}
+          <a href="/pricing"
+             class="group relative block h-full overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/5 p-5 shadow-xl opacity-60 hover:opacity-100 transition">
+            <div class="absolute right-3 top-3 inline-flex items-center gap-2 rounded-full bg-black/30 px-3 py-1 text-[10px] font-black tracking-widest text-gray-200 border border-white/10">
+              <i data-lucide="lock" class="h-3.5 w-3.5"></i> BLOQUEADO
+            </div>
+            <div class="text-4xl mb-3 grayscale">{{ tool.icon }}</div>
+            <h3 class="text-sm font-black text-gray-200">{{ tool.name }}</h3>
+            <p class="mt-2 text-[11px] text-gray-400 line-clamp-2">
+              Faça upgrade para liberar.
+            </p>
+            <div class="mt-4 inline-flex items-center gap-2 text-[10px] font-black tracking-widest uppercase text-blue-300">
+              Ver planos <i data-lucide="arrow-right" class="h-4 w-4"></i>
+            </div>
+          </a>
+        {% else %}
+          <a href="/tool/{{ key }}"
+             class="group block h-full overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/5 p-5 shadow-xl hover:border-blue-500/40 hover:bg-white/10 transition">
+            <div class="flex items-start justify-between gap-2">
+              <div class="text-4xl mb-2 group-hover:scale-110 transition duration-300">{{ tool.icon }}</div>
+              <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-black tracking-widest text-gray-200">
+                {{ cat }}
+              </span>
+            </div>
+            <h3 class="mt-1 text-sm font-black text-white group-hover:text-blue-300 transition">
+              {{ tool.name }}
+            </h3>
+            <p class="mt-2 text-[11px] text-gray-400 line-clamp-2">
+              Ação rápida com IA para acelerar resultados.
+            </p>
+            <div class="mt-4 inline-flex items-center gap-2 text-[10px] font-black tracking-widest uppercase text-blue-300">
+              Abrir <i data-lucide="arrow-right" class="h-4 w-4"></i>
+            </div>
+          </a>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+
+  {# =========================
+     QUICK ACTIONS (vendável)
+     ========================= #}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+    <div class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-blue-600/90 to-indigo-700/70 p-8 shadow-2xl">
+      <div class="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl"></div>
+      <div class="relative">
+        <h3 class="text-white text-2xl font-black leading-tight">
+          Precisa de um agente personalizado?
+        </h3>
+        <p class="mt-2 text-blue-100/90 max-w-md">
+          Criamos IAs exclusivas para processos do seu negócio: atendimento, cardápio, SEO local, vídeos e operação.
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="mailto:contact@rendey.store"
+             class="inline-flex items-center justify-center rounded-2xl bg-black/80 px-6 py-4 font-black text-white hover:bg-black transition">
+            Entrar em contato
+          </a>
+          <a href="/support"
+             class="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-6 py-4 font-black text-white hover:bg-white/15 transition">
+            Ver exemplos
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-xl flex flex-col justify-between">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="rounded-2xl bg-white/5 p-3 border border-white/10">
+            <i data-lucide="shield" class="h-6 w-6 text-emerald-300"></i>
+          </div>
+          <div>
+            <h3 class="text-white text-xl font-black">Checklist de vendas</h3>
+            <p class="text-gray-400 text-sm">Ajustes que aumentam conversão e retenção</p>
+          </div>
+        </div>
+
+        <ul class="mt-5 space-y-2 text-sm text-gray-300/90">
+          <li class="flex items-center gap-2">
+            <span class="h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+            Ofereça 3 recomendações inteligentes no topo
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+            Mostre status da assinatura e valor percebido
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+            Histórico com “Abrir” rápido e visual premium
+          </li>
+        </ul>
+      </div>
+
+      <a href="/pricing" class="mt-6 inline-flex items-center gap-2 font-black text-blue-300 hover:underline">
+        Melhorar conversão agora <i data-lucide="arrow-right" class="h-4 w-4"></i>
+      </a>
+    </div>
+  </div>
+
+
+  {# =========================
+     HISTÓRICO
+     ========================= #}
+  <div class="overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl">
+    <div class="p-6 md:p-8 border-b border-white/10 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="rounded-2xl bg-white/5 p-3 border border-white/10">
+          <i data-lucide="clock" class="h-5 w-5 text-gray-200"></i>
+        </div>
+        <div>
+          <h2 class="text-white text-lg font-black">Histórico recente</h2>
+          <p class="text-gray-400 text-sm">Últimos 20 registros</p>
+        </div>
+      </div>
+
+      <span class="hidden md:inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2 text-xs font-black tracking-widest text-gray-200">
+        <i data-lucide="database" class="h-4 w-4"></i>
+        LOGS DE EXECUÇÃO
+      </span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="bg-black/20 text-gray-400 text-[10px] uppercase font-black tracking-widest">
+          <tr>
+            <th class="px-6 md:px-8 py-4">Agente</th>
+            <th class="px-6 md:px-8 py-4">Data</th>
+            <th class="px-6 md:px-8 py-4">Status</th>
+            <th class="px-6 md:px-8 py-4 text-right">Ação</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-white/5">
+          {% for report in reports %}
+            <tr class="hover:bg-white/5 transition">
+              <td class="px-6 md:px-8 py-5">
+                <div class="flex items-center gap-3">
+                  <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+                  <span class="font-black text-white">{{ report.tool_name }}</span>
+                </div>
+              </td>
+
+              <td class="px-6 md:px-8 py-5 text-gray-300 text-sm font-medium whitespace-nowrap">
+                {{ report.date_created.strftime('%d/%m/%Y • %H:%M') }}
+              </td>
+
+              <td class="px-6 md:px-8 py-5">
+                {% if report.status == 'COMPLETED' %}
+                  <span class="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-200">
+                    <i data-lucide="check-circle" class="h-4 w-4"></i> PRONTO
+                  </span>
+                {% elif 'PROCESSING' in report.status %}
+                  <span class="inline-flex items-center gap-2 rounded-full border border-yellow-500/20 bg-yellow-500/10 px-3 py-1 text-xs font-black text-yellow-200 animate-pulse">
+                    <i data-lucide="loader-2" class="h-4 w-4"></i> PROCESSANDO
+                  </span>
                 {% else %}
-                    <a href="/tool/{{ key }}" class="bg-gray-800 border border-gray-700 rounded-3xl p-6 h-full flex flex-col items-center text-center hover:bg-gray-700 hover:border-blue-500 transition-all shadow-xl group hover:-translate-y-2">
-                        <div class="text-4xl mb-4 group-hover:scale-125 transition duration-500">{{ tool.icon }}</div>
-                        <h3 class="font-bold text-white text-sm group-hover:text-blue-400 transition">{{ tool.name }}</h3>
-                        <div class="mt-4 opacity-0 group-hover:opacity-100 transition text-[10px] font-bold text-blue-500 uppercase tracking-widest">Acessar Agente</div>
-                    </a>
+                  <span class="inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs font-black text-red-200">
+                    <i data-lucide="x-circle" class="h-4 w-4"></i> FALHA
+                  </span>
                 {% endif %}
-            </div>
-        {% endfor %}
-    </div>
+              </td>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
-        <div class="bg-blue-600 rounded-[3rem] p-10 text-white relative overflow-hidden group">
-            <div class="relative z-10">
-                <h3 class="text-3xl font-black mb-4 leading-none">Precisa de um Agente Personalizado?</h3>
-                <p class="text-blue-100 mb-8 max-w-xs">Criamos IAs exclusivas para processos específicos do seu negócio. Fale com nossos engenheiros.</p>
-                <a href="mailto:contact@rendey.store" class="bg-black text-white px-8 py-4 rounded-2xl font-black hover:scale-105 transition inline-block">ENTRAR EM CONTATO</a>
-            </div>
-            <i data-lucide="construction" class="absolute -bottom-10 -right-10 w-64 h-64 opacity-10 group-hover:rotate-12 transition duration-700"></i>
-        </div>
-
-        <div class="bg-gray-800 rounded-[3rem] p-10 border border-gray-700 flex flex-col justify-between">
-            <div>
-                <h3 class="text-white text-2xl font-black mb-2 flex items-center gap-2">
-                    <i data-lucide="help-circle" class="text-green-500"></i> Centro de Ajuda
-                </h3>
-                <p class="text-gray-400">Aprenda a extrair o máximo dos robôs de inteligência estratégica da Rendey.</p>
-            </div>
-            <a href="/support" class="mt-8 text-blue-400 font-bold hover:underline flex items-center gap-2">
-                Acessar Guia de Uso <i data-lucide="external-link" class="w-4 h-4"></i>
-            </a>
-        </div>
+              <td class="px-6 md:px-8 py-5 text-right">
+                <a href="/report/{{ report.id }}"
+                   class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-black text-gray-200 hover:bg-blue-600 hover:border-blue-500/40 hover:text-white transition">
+                  ABRIR
+                </a>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="4" class="px-6 md:px-8 py-16 text-center">
+                <div class="mx-auto max-w-md">
+                  <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                    <i data-lucide="sparkles" class="h-6 w-6 text-blue-300"></i>
+                  </div>
+                  <p class="text-white font-black">Nenhuma atividade registrada</p>
+                  <p class="mt-1 text-gray-400 text-sm">
+                    Execute um agente acima para criar seu primeiro relatório.
+                  </p>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
 
-    <div class="bg-gray-800 rounded-[2.5rem] border border-gray-700 shadow-2xl overflow-hidden">
-        <div class="p-8 border-b border-gray-700 flex justify-between items-center">
-            <h2 class="text-xl font-black text-white flex items-center gap-2"><i data-lucide="clock" class="text-gray-500"></i> Histórico Recente</h2>
-            <span class="text-xs text-gray-500 font-bold uppercase tracking-widest">Últimos 20 registros</span>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
-                <thead class="bg-gray-900/50 text-gray-500 text-[10px] uppercase font-black tracking-widest">
-                    <tr>
-                        <th class="px-8 py-4">Agente</th>
-                        <th class="px-8 py-4">Data de Execução</th>
-                        <th class="px-8 py-4">Status</th>
-                        <th class="px-8 py-4 text-right">Resultado</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-700/50">
-                    {% for report in reports %}
-                    <tr class="hover:bg-white/5 transition group">
-                        <td class="px-8 py-6">
-                            <div class="flex items-center gap-3">
-                                <div class="w-2 h-2 rounded-full bg-blue-500"></div>
-                                <span class="font-bold text-white">{{ report.tool_name }}</span>
-                            </div>
-                        </td>
-                        <td class="px-8 py-6 text-gray-400 text-sm font-medium">{{ report.date_created.strftime('%d %b, %H:%M') }}</td>
-                        <td class="px-8 py-6">
-                            {% if report.status == 'COMPLETED' %}
-                                <span class="text-green-400 text-xs font-black uppercase tracking-tighter flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> Pronto</span>
-                            {% elif 'PROCESSING' in report.status %}
-                                <span class="text-yellow-500 text-xs font-black uppercase tracking-tighter animate-pulse">Processando...</span>
-                            {% else %}
-                                <span class="text-red-500 text-xs font-black uppercase tracking-tighter">Falha</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-8 py-6 text-right">
-                            <a href="/report/{{ report.id }}" class="bg-white/5 group-hover:bg-blue-600 group-hover:text-white text-gray-400 px-4 py-2 rounded-lg text-xs font-black transition">ABRIR</a>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="4" class="px-8 py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Nenhuma atividade registrada</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
 </div>
 
+
 <style>
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    
-    .cat-btn { background: #1f2937; color: #9ca3af; border: 1px solid transparent; }
-    .cat-btn:hover { background: #374151; color: white; }
-    .cat-btn.active { background: #2563eb; color: white; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4); }
-    
-    .tool-card.hidden { display: none; }
-    
-    @keyframes fade-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .tool-card { animation: fade-in 0.5s ease-out forwards; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .cat-btn {
+    background: rgba(255,255,255,0.06);
+    color: rgba(229,231,235,0.8);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .cat-btn:hover {
+    background: rgba(255,255,255,0.10);
+    color: white;
+  }
+  .cat-btn.active {
+    background: rgba(37, 99, 235, 0.95);
+    color: white;
+    border-color: rgba(59,130,246,0.35);
+    box-shadow: 0 18px 40px rgba(37, 99, 235, 0.25);
+  }
+
+  .tool-card.hidden { display: none; }
 </style>
 
 <script>
-    lucide.createIcons();
+  lucide.createIcons();
 
-    function filterTools(category) {
-        // Atualiza botões
-        document.querySelectorAll('.cat-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if(btn.innerText.toLowerCase() === category.toLowerCase() || (category === 'all' && btn.innerText === 'Todos')) {
-                btn.classList.add('active');
-            }
-        });
+  function filterTools(category) {
+    // Atualiza botões
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+      btn.classList.remove('active');
+      const label = (btn.innerText || '').trim().toLowerCase();
+      const target = (category || '').trim().toLowerCase();
 
-        // Filtra cards
-        const cards = document.querySelectorAll('.tool-card');
-        cards.forEach(card => {
-            if (category === 'all' || card.getAttribute('data-category') === category) {
-                card.classList.remove('hidden');
-            } else {
-                card.classList.add('hidden');
-            }
-        });
-    }
+      if (target === 'all' && label === 'todos') btn.classList.add('active');
+      if (label === target) btn.classList.add('active');
+    });
+
+    // Filtra cards
+    const cards = document.querySelectorAll('.tool-card');
+    cards.forEach(card => {
+      const cat = (card.getAttribute('data-category') || '').trim();
+      if (category === 'all' || cat === category) card.classList.remove('hidden');
+      else card.classList.add('hidden');
+    });
+  }
 </script>
 {% endblock %}
