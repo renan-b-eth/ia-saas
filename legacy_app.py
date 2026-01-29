@@ -57,12 +57,7 @@ def enviar_alerta_admin(app, usuario, motivo, input_texto):
 
 def register_routes(app):
 
-    # -----------------------------
-    # DOWNLOADS / STATIC UPLOADS
-    # -----------------------------
-    @app.route("/static/uploads/<path:filename>")
-    def serve_uploads_folder(filename):
-        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+
 
     @app.route("/download_video/<path:filename>")
     @login_required
