@@ -1,3 +1,9 @@
+# Stripe Price IDs
+PRICE_ID_STARTER = "price_1StrGmL5fMgQY8LOBZiFBLJ9"
+PRICE_ID_PRO = "price_1StrHeL5fMgQY8LOCQbOgC71"
+PRICE_ID_AGENCY = "price_1StrIWL5fMgQY8LOR75qDWbv"
+
+
 PLAN_LEVELS = {'free': 0, 'starter': 1, 'pro': 2, 'agency': 3}
 
 # ✅ cole aqui seu AGENTS_CONFIG inteiro (o mesmo que você já tem)

@@ -1,10 +1,9 @@
 from app import create_app
 from app.extensions import db
+import legacy_app
 
 app = create_app()
-
-# Importa o sistema antigo para registrar rotas no mesmo app
-import legacy_app  # noqa: F401
+legacy_app.register_routes(app)
 
 with app.app_context():
     db.create_all()
