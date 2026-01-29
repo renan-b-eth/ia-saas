@@ -1,29 +1,33 @@
 # app/__init__.py
 import os
 import stripe
-from flask import Flask, send_from_directory, render_template
+from flask import Flask, render_template
+
 from app.config import Config
 from app.extensions import init_extensions, login_manager, db
 from app.models import User
 
 from app.services.rag_service import preload_rag, filtrar_melhores_dados_precarregado
+from app.services.guardrails import user_can_access
 
 
 def create_app():
     app = Flask(__name__, template_folder="../templates", static_folder="../static")
     app.config.from_object(Config)
 
-    # --- PRELOAD RAG (só garante que carregou) ---
+    # --- PRELOAD RAG (só garante que carregou no boot) ---
     preload_rag()
 
     # --- normaliza DB url postgres ---
     db_url = app.config.get("DATABASE_URL", "sqlite:///saas.db")
-    if db_url.startswith("postgres://"):
+    if isinstance(db_url, str) and db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 
     # --- upload folder ---
-    os.makedirs(app.config.get("UPLOAD_FOLDER", "/tmp"), exist_ok=True)
+    upload_folder = app.config.get("UPLOAD_FOLDER", "/tmp")
+    app.config["UPLOAD_FOLDER"] = upload_folder
+    os.makedirs(upload_folder, exist_ok=True)
 
     # --- stripe ---
     stripe.api_key = app.config.get("STRIPE_SECRET_KEY", "")
@@ -36,11 +40,6 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # --- serve uploads ---
-    @app.route("/static/uploads/<path:filename>")
-    def serve_uploads_folder(filename):
-        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
-
     # --- error pages ---
     @app.errorhandler(404)
     def page_not_found(e):
@@ -50,8 +49,19 @@ def create_app():
     def internal_server_error(e):
         return render_template("404.html"), 500
 
-    # ✅ aqui você expõe a função CERTA pro resto do app
+    # ✅ expõe a função RAG pra qualquer módulo/worker usar
     app.filtrar_melhores_dados = filtrar_melhores_dados_precarregado
+
+    # ✅ injeta helper 'access' pro dashboard.html (corrige 'access is undefined')
+    @app.context_processor
+    def inject_access_helpers():
+        def access(user, min_plan):
+            return user_can_access(user, (min_plan or "free"))
+        return {"access": access}
+
+    # ⚠️ IMPORTANTE:
+    # NÃO defina a rota /static/uploads aqui, porque você já define no legacy_app.
+    # Se definir nos 2, volta o erro de endpoint duplicado.
 
     # --- registra rotas do legacy (uma única vez) ---
     from legacy_app import register_routes
@@ -64,6 +74,5 @@ def create_app():
     return app
 
 
-# ✅ ESSA LINHA É O QUE RESOLVE O "Failed to find attribute 'app' in 'app'"
-# Gunicorn (app:app) precisa disso:
+# ✅ necessário pro gunicorn: "gunicorn app:app"
 app = create_app()
